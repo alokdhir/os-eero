@@ -29,12 +29,15 @@
   units           rows for the Units tab
   clients [all]   rows for the Clients tab: Wi-Fi clients connected now, or all the network remembers
   network         the Network tab: settings and health, grouped
+  client <mac> <hours>   one client's page: now, time on each eero, its moves
+  moves <hours>          recent moves (roams and band changes) across all clients
 """
 
 import json
 import os
 import re
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -116,12 +119,32 @@ def _dbm(text):
     return int(m.group(1)) if m else None
 
 
-def _mbps(conn):
-    bps = ((conn or {}).get('rx_rate_info') or {}).get('rate_bps')
-    if isinstance(bps, (int, float)) and bps > 0:
-        return round(bps / 1e6)
-    m = re.match(r'\s*([0-9.]+)\s*MBit', str((conn or {}).get('rx_bitrate') or ''))
-    return round(float(m.group(1))) if m else None
+def _channel(mhz):
+    """Wi-Fi channel number from the frequency in MHz (2.4, 5 and 6 GHz), or None."""
+    if not isinstance(mhz, int):
+        return None
+    if mhz == 2484:
+        return 14
+    if 2412 <= mhz < 2484:
+        return (mhz - 2407) // 5
+    if 5150 <= mhz < 5900:
+        return (mhz - 5000) // 5
+    if 5925 <= mhz <= 7125:
+        return (mhz - 5950) // 5
+    return None
+
+
+# names Apple devices give with a private Wi-Fi address instead of their own (as in os-loupe)
+PLACEHOLDERS = {'mac', 'iphone', 'ipad', 'watch', 'apple-watch', 'ipod', 'localhost'}
+
+
+def _no_name(d):
+    shown = (d.get('display_name') or '').strip()
+    if shown.lower() in PLACEHOLDERS:
+        return True
+    if not d.get('hostname') and shown == (d.get('manufacturer') or '').strip():
+        return True
+    return re.sub(r'[^0-9a-f]', '', shown.lower()) == re.sub(r'[^0-9a-f]', '', d['mac'].lower())
 
 
 def clients(docs, include_all=False):
@@ -136,17 +159,20 @@ def clients(docs, include_all=False):
             continue
         conn = d.get('connectivity') or {}
         freq = (d.get('interface') or {}).get('frequency')
+        channel = _channel(conn.get('frequency'))
         rows.append({
             'mac': d['mac'].lower(),
             'name': d.get('nickname') or d.get('display_name') or d.get('hostname') or d['mac'],
             'named': bool(d.get('nickname')),           # named in the eero app (else eero's guess)
-            # eero shows the MAC vendor when it has no name at all ("Shenzhen Phaten Tech. LTD"): say so
-            'vendor_name': not d.get('nickname') and not d.get('hostname')
-                           and (d.get('display_name') or '') == (d.get('manufacturer') or '').strip(),
+            # no real name: eero shows the MAC vendor ("Shenzhen Phaten Tech. LTD") or the device calls itself
+            # by its MAC ("0005CD000001")
+            'vendor_name': not d.get('nickname') and _no_name(d),
             'unit': (d.get('source') or {}).get('location') or '',
-            'band': ('%s GHz' % freq) if freq else '',
+            'band': (('%s GHz' % freq) if freq else '') + (' · ch %d' % channel if channel else ''),
             'signal': _dbm(conn.get('signal')),
-            'rate': _mbps(conn),
+            # eero's own 0-5 connection quality (the bars in the app). Not the link rate: that is the rate of
+            # the last frame eero received, so an idle phone reads 6 Mbps; a snapshot of it is noise.
+            'quality': conn.get('score_bars') if isinstance(conn.get('score_bars'), int) else None,
             'ip': d.get('ip') or '',
             'type': (d.get('device_type') or '').replace('_', ' '),
             'maker': d.get('manufacturer') or '',
@@ -227,6 +253,87 @@ def network(net, thread=None, speedtests=None):
     return out
 
 
+MAC = re.compile(r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$')
+MAX_HOURS = 24 * 30                             # history is kept for 30 days
+
+
+def hours_arg(text):
+    try:
+        hours = float(text)
+    except (TypeError, ValueError):
+        hours = 24
+    return min(max(hours, 1), MAX_HOURS)
+
+
+def time_on_units(events, start, now, location):
+    """Seconds on each unit between start and now. `events` ascending (dicts as Store.client_events gives),
+    `location` where the client was at `start` (None: not connected). Returns [(unit or None, seconds)]."""
+    spent = {}
+    t, here = start, location
+    for e in events:
+        if e['ts'] < start:
+            continue
+        spent[here] = spent.get(here, 0) + max(0, e['ts'] - t)
+        here = None if e['event'] == 'disconnected' else e['to_unit']
+        t = e['ts']
+    spent[here] = spent.get(here, 0) + max(0, now - t)
+    return sorted(((u, int(sec)) for u, sec in spent.items() if sec > 0), key=lambda x: -x[1])
+
+
+def where_at(events, start, current):
+    """Where the client was at `start`: the last move before it, else what the first move after it left from,
+    else (no moves at all) where it is now."""
+    before = [e for e in events if e['ts'] < start]
+    if before:
+        e = before[-1]
+        return None if e['event'] == 'disconnected' else e['to_unit']
+    after = [e for e in events if e['ts'] >= start]
+    if after:
+        e = after[0]
+        return None if e['event'] == 'connected' else e['from_unit']
+    return current
+
+
+def client(mac, hours, db_path=cache.PATH, now=None):
+    mac = (mac or '').strip().lower()
+    if not MAC.match(mac):
+        return {'error': 'invalid MAC address'}
+    now = int(now if now is not None else time.time())
+    try:
+        with cache.Store(db_path, readonly=True) as s:
+            docs = s.get('clients')[1]
+            since = s.state().get('history_since')
+            events = list(reversed(s.client_events(now - MAX_HOURS * 3600, mac=mac, limit=100000)))
+    except Exception:
+        docs, since, events = None, None, []
+    row = next((r for r in clients(docs, include_all=True) if r['mac'] == mac), None)
+    start = now - int(hours * 3600)
+    if since:
+        start = max(start, int(since))
+    current = row['unit'] if row and row['connected'] else None
+    spent = time_on_units(events, start, now, where_at(events, start, current)) if since else []
+    total = sum(sec for _, sec in spent) or 1
+    return {
+        'client': row,
+        'hours': hours,
+        'since': start if since else None,
+        'history_since': since,
+        'time': [{'unit': u, 'seconds': sec, 'share': round(100 * sec / total, 1)} for u, sec in spent],
+        'events': list(reversed([e for e in events if e['ts'] >= start]))[:500],
+    }
+
+
+def moves(hours, db_path=cache.PATH, now=None, limit=2000):
+    """Roams and band changes across all clients, newest first."""
+    now = int(now if now is not None else time.time())
+    try:
+        with cache.Store(db_path, readonly=True) as s:
+            events = s.client_events(now - int(hours * 3600), limit=limit * 4)
+    except Exception:
+        return []
+    return [e for e in events if e['event'] in ('roamed', 'band')][:limit]
+
+
 def main(argv):
     what = argv[1] if len(argv) > 1 else 'status'
     if what == 'status':
@@ -237,6 +344,10 @@ def main(argv):
         result = clients(_cached('clients'), include_all=len(argv) > 2 and argv[2] == 'all')
     elif what == 'network':
         result = network(_cached('network'), _cached('thread'), _cached('speedtest'))
+    elif what == 'client':
+        result = client(argv[2] if len(argv) > 2 else '', hours_arg(argv[3] if len(argv) > 3 else 24))
+    elif what == 'moves':
+        result = moves(hours_arg(argv[2] if len(argv) > 2 else 24))
     else:
         result = {'error': 'unknown query'}
     print(json.dumps(result))

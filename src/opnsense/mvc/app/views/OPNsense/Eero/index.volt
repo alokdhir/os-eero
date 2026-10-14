@@ -47,18 +47,41 @@ POSSIBILITY OF SUCH DAMAGE.
             }
         });
 
-        /* tabs <-> address (#units, #clients, #network, #settings); Apply only belongs to Settings */
+        /* tabs <-> address: #units, #clients, #network, #settings, and the Clients tab's views #moves and
+           #client=<mac>. Apply only belongs to Settings. */
+        let clientView = {view: 'list', mac: null};
+        function tabOf(hash) {
+            if (hash.startsWith('#client=')) {
+                clientView = {view: 'client', mac: decodeURIComponent(hash.slice(8)).toLowerCase()};
+                return '#clients';
+            }
+            if (hash === '#moves') {
+                clientView = {view: 'moves', mac: null};
+                return '#clients';
+            }
+            if (hash === '#clients') {
+                clientView = {view: 'list', mac: null};
+            }
+            return $('#maintabs a[href="' + hash + '"]').length ? hash : '#units';
+        }
         function show(hash) {
-            const tab = $('#maintabs a[href="' + hash + '"]').length ? hash : '#units';
-            $('#maintabs a[href="' + tab + '"]').tab('show');
+            const tab = tabOf(hash || '');
             $('.eero-apply').toggle(tab === '#settings');
+            if ($('#maintabs li.active a').attr('href') === tab) {
+                load(tab);                      /* already showing: no 'shown' event, so load the view here */
+            } else {
+                $('#maintabs a[href="' + tab + '"]').tab('show');
+            }
         }
         $('#maintabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-            history.replaceState(null, null, e.target.hash);
+            const hash = window.location.hash;
+            if (tabOf(hash) !== e.target.hash) {
+                if (e.target.hash === '#clients') clientView = {view: 'list', mac: null};
+                history.replaceState(null, null, e.target.hash);
+            }
             $('.eero-apply').toggle(e.target.hash === '#settings');
         });
         $(window).on('hashchange', function () { show(window.location.hash); });
-        show(window.location.hash);
 
         /* --- Devices, Clients, Network: all from eerod's cache. Grid cells are not escaped by the core grid's
            default formatter, so every column with eero- or device-supplied text uses one that escapes. */
@@ -77,11 +100,12 @@ POSSIBILITY OF SUCH DAMAGE.
                 /* icon: a Font Awesome class from Loupe (when installed); only fa-* class names are used */
                 const icon = /^[a-z0-9 -]+$/.test(row.icon || '') ? '<i class="' + row.icon + ' fa-fw text-muted"></i> ' : '<i class="fa fa-fw"></i> ';
                 const tip = row.mac + (row.private_mac ? ' {{ lang._('(private address)') }}' : '');
-                return icon + '<span title="' + esc(tip) + '">' + esc(row.name) + '</span>';
+                return icon + '<a href="#client=' + encodeURIComponent(plain(row.mac)) + '" title="' + esc(tip) + '">' + esc(row.name) + '</a>';
             },
             bars: function (column, row) {
-                /* eero's 0-5 mesh quality as a signal meter: five rising bars, filled ones coloured by level */
-                const n = parseInt(row.mesh);
+                /* a 0-5 rating from eero (mesh quality, client connection quality) as a signal meter: five
+                   rising bars, filled ones coloured by level */
+                const n = parseInt(row[column.id]);
                 if (isNaN(n)) return dash;
                 const cls = n >= 4 ? 'text-success' : (n === 3 ? 'text-warning' : 'text-danger');
                 let html = '<span class="eero-bars ' + cls + '" title="' + n + '/5">';
@@ -99,12 +123,20 @@ POSSIBILITY OF SUCH DAMAGE.
             signal: function (column, row) {
                 const v = parseInt(row.signal);
                 if (isNaN(v)) return dash;
-                const cls = v >= -60 ? 'text-success' : (v >= -70 ? 'text-warning' : 'text-danger');
-                return '<i class="fa fa-circle ' + cls + '"></i>&nbsp; ' + v + ' dBm';
+                /* how well the eero hears the client: -67 or better is good for anything; to -80 is fine for
+                   devices that send little (shades, fans, plugs); below -80 is poor */
+                const cls = v >= -67 ? 'text-success' : (v >= -80 ? 'text-warning' : 'text-danger');
+                const tip = v >= -67 ? '{{ lang._('Good') }}' : (v >= -80 ? '{{ lang._('Fair: fine for devices that send little') }}' : '{{ lang._('Poor') }}');
+                return '<span title="' + tip + '"><i class="fa fa-circle ' + cls + '"></i>&nbsp; ' + v + ' dBm</span>';
             },
-            rate: function (column, row) {
-                const v = parseInt(row.rate);
-                return isNaN(v) ? dash : v + ' Mbps';
+            when: function (column, row) {
+                return esc(when(row.ts));
+            },
+            move: function (column, row) {
+                return row.event === 'band' ? esc(row.to_unit) : esc(row.from_unit) + ' → ' + esc(row.to_unit);
+            },
+            bands: function (column, row) {
+                return row.band_from === row.band_to ? esc(ghz(row.band_to)) : esc(ghz(row.band_from)) + ' → ' + esc(ghz(row.band_to));
             },
             seen: function (column, row) {
                 if (row.connected) return '{{ lang._('now') }}';
@@ -148,12 +180,112 @@ POSSIBILITY OF SUCH DAMAGE.
             clearable(id);
         }
         let clientsShow = '';
+        let hours = 24;
         $('#clients_show button').on('click', function () {
-            $('#clients_show button').removeClass('active');
-            $(this).addClass('active');
-            clientsShow = $(this).data('show');
-            grid('grid_clients', '/api/eero/report/search_clients', () => ({show: clientsShow}));
+            const show = $(this).data('show');
+            if (show === 'moves') {
+                window.location.hash = '#moves';
+                return;
+            }
+            clientsShow = show;
+            if (window.location.hash !== '#clients') {
+                window.location.hash = '#clients';         /* the hashchange shows the list */
+            } else {
+                showClients();
+            }
         });
+        $('.eero-period button').on('click', function () {
+            hours = parseInt($(this).data('hours'));
+            load('#clients');
+        });
+
+        function when(ts) {
+            const d = new Date(ts * 1000);
+            const today = new Date().toDateString() === d.toDateString();
+            return today ? d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+                : d.toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+        }
+        function ghz(band) {
+            return band ? plain(band) + ' GHz' : '';
+        }
+        function duration(sec) {
+            const h = Math.floor(sec / 3600), m = Math.round(sec % 3600 / 60);
+            return h ? h + 'h ' + m + 'm' : m + 'm';
+        }
+        function views(view) {
+            $('#clients_list').toggle(view === 'list');
+            $('#clients_moves').toggle(view === 'moves');
+            $('#client_detail').toggle(view === 'client');
+            $('#clients_bar').toggle(view !== 'client');
+            $('#clients_show button').removeClass('active');
+            $('#clients_show button[data-show="' + (view === 'moves' ? 'moves' : clientsShow) + '"]').addClass('active');
+            $('.eero-period').toggle(view !== 'list');
+            $('.eero-period button').removeClass('active').filter('[data-hours="' + hours + '"]').addClass('active');
+        }
+        function showClients() {
+            views('list');
+            grid('grid_clients', '/api/eero/report/search_clients', () => ({show: clientsShow}));
+        }
+        function showMoves() {
+            views('moves');
+            grid('grid_moves', '/api/eero/report/search_moves', () => ({hours: hours}));
+        }
+
+        const BAR = ['progress-bar-success', 'progress-bar-info', 'progress-bar-warning', 'progress-bar-danger', ''];
+        function showClient(mac) {
+            views('client');
+            ajaxGet('/api/eero/report/client/' + encodeURIComponent(mac) + '/' + hours, {}, function (page) {
+                const $d = $('#client_detail_body').empty();
+                if (!page || page.error || !page.client) {
+                    $d.text(page && page.error ? plain(page.error) : '{{ lang._('eero does not know this client.') }}');
+                    return;
+                }
+                const c = page.client;
+                const icon = /^[a-z0-9 -]+$/.test(c.icon || '') ? '<i class="' + c.icon + ' fa-fw text-muted"></i> ' : '';
+                const now = c.connected
+                    ? '{{ lang._('Now on') }} <strong>' + esc(c.unit) + '</strong>' + (c.band ? ' · ' + esc(c.band) : '')
+                      + (c.signal !== null ? ' · ' + esc(c.signal) + ' dBm' : '') + (c.quality !== null ? ' · {{ lang._('quality') }} ' + esc(c.quality) + '/5' : '')
+                    : '{{ lang._('Not connected') }}' + (c.last_seen ? ', {{ lang._('last seen') }} ' + esc(new Date(Date.parse(plain(c.last_seen))).toLocaleString()) : '');
+                $d.append($('<h3 style="margin-top: 0"/>').html(icon + esc(c.name)),
+                    $('<p class="text-muted"/>').text([plain(c.type), plain(c.mac) + (c.private_mac ? ' {{ lang._('(private address)') }}' : ''), plain(c.ip)].filter(Boolean).join(' · ')),
+                    $('<p/>').html(now));
+
+                if (!page.history_since) {
+                    $d.append($('<p class="text-muted"/>').text('{{ lang._('No history yet: it starts a minute after the first update from eero.') }}'));
+                    return;
+                }
+                const $bar = $('<div class="progress" style="margin-bottom: 6px"/>');
+                const $legend = $('<p/>');
+                const colours = {};
+                page.time.forEach(function (t, i) {
+                    const away = t.unit === null;
+                    const cls = away ? '' : (colours[t.unit] = BAR[Object.keys(colours).length % BAR.length]);
+                    const label = away ? '{{ lang._('Not connected') }}' : plain(t.unit);
+                    $bar.append($('<div class="progress-bar ' + cls + '"/>').css({width: t.share + '%'})
+                        .css(away ? {background: '#ddd'} : {}).attr('title', label + ': ' + duration(t.seconds)));
+                    $legend.append(i ? ' · ' : '', $('<span/>').text(label + ' ' + Math.round(t.share) + '%'));
+                });
+                const since = page.since > Date.now() / 1000 - page.hours * 3600 + 120
+                    ? ' ({{ lang._('history starts') }} ' + when(page.since) + ')' : '';
+                $d.append($('<h4/>').text('{{ lang._('Time on each eero') }}' + since), $bar, $legend);
+
+                const $t = $('<tbody/>');
+                const what = {
+                    roamed: e => esc(e.from_unit) + ' → <strong>' + esc(e.to_unit) + '</strong>',
+                    band: e => esc(e.to_unit) + ': ' + esc(ghz(e.band_from)) + ' → ' + esc(ghz(e.band_to)),
+                    connected: e => '{{ lang._('joined') }} <strong>' + esc(e.to_unit) + '</strong>',
+                    disconnected: e => '{{ lang._('left') }} ' + esc(e.from_unit)
+                };
+                page.events.forEach(function (e) {
+                    const band = e.event === 'roamed' && e.band_from !== e.band_to ? ' <span class="text-muted">(' + esc(ghz(e.band_from)) + ' → ' + esc(ghz(e.band_to)) + ')</span>' : '';
+                    $t.append($('<tr/>').append($('<td style="width: 9em"/>').text(when(e.ts)),
+                        $('<td/>').html((what[e.event] ? what[e.event](e) : esc(e.event)) + band)));
+                });
+                $d.append($('<h4/>').text('{{ lang._('Moves') }}'), page.events.length
+                    ? $('<table class="table table-condensed table-striped"/>').append($t)
+                    : $('<p class="text-muted"/>').text('{{ lang._('No moves in this period.') }}'));
+            });
+        }
         function showNetwork() {
             ajaxGet('/api/eero/report/network', {}, function (groups) {
                 if (!Array.isArray(groups) || !groups.length) {
@@ -174,11 +306,11 @@ POSSIBILITY OF SUCH DAMAGE.
         }
         function load(tab) {
             if (tab === '#units') grid('grid_units', '/api/eero/report/search_units');
-            else if (tab === '#clients') grid('grid_clients', '/api/eero/report/search_clients', () => ({show: clientsShow}));
+            else if (tab === '#clients') ({list: showClients, moves: showMoves, client: () => showClient(clientView.mac)})[clientView.view]();
             else if (tab === '#network') showNetwork();
         }
         $('#maintabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) { load(e.target.hash); });
-        load($('#maintabs li.active a').attr('href'));
+        show(window.location.hash);
         setInterval(function () { load($('#maintabs li.active a').attr('href')); }, 60000);
 
         /* --- status line and the eero account (all from eerod's cache: the page never calls eero) */
@@ -351,20 +483,27 @@ POSSIBILITY OF SUCH DAMAGE.
         </table>
     </div>
     <div id="clients" class="tab-pane fade in">
-        <div style="padding: 10px 10px 0">
+        <div style="padding: 10px 10px 0" id="clients_bar">
             <div class="btn-group" id="clients_show">
                 <button type="button" class="btn btn-default active" data-show="">{{ lang._('Connected now') }}</button>
                 <button type="button" class="btn btn-default" data-show="all">{{ lang._('All known') }}</button>
+                <button type="button" class="btn btn-default" data-show="moves">{{ lang._('Recent moves') }}</button>
+            </div>
+            <div class="btn-group eero-period" style="margin-left: 10px; display: none">
+                <button type="button" class="btn btn-default" data-hours="24">{{ lang._('1 day') }}</button>
+                <button type="button" class="btn btn-default" data-hours="168">{{ lang._('7 days') }}</button>
+                <button type="button" class="btn btn-default" data-hours="720">{{ lang._('30 days') }}</button>
             </div>
         </div>
+        <div id="clients_list">
         <table id="grid_clients" class="table table-condensed table-hover table-striped table-responsive">
             <thead><tr>
                 <th data-column-id="mac" data-identifier="true" data-visible="false" data-formatter="text">{{ lang._('MAC address') }}</th>
                 <th data-column-id="name" data-formatter="client">{{ lang._('Name') }}</th>
                 <th data-column-id="unit" data-formatter="text">{{ lang._('On eero') }}</th>
-                <th data-column-id="band" data-formatter="text" data-width="7em">{{ lang._('Band') }}</th>
-                <th data-column-id="signal" data-formatter="signal" data-width="8em">{{ lang._('Signal') }}</th>
-                <th data-column-id="rate" data-formatter="rate" data-width="8em">{{ lang._('Rate') }}</th>
+                <th data-column-id="band" data-formatter="text" data-min-width="90" data-max-width="130">{{ lang._('Band') }}</th>
+                <th data-column-id="signal" data-formatter="signal" data-min-width="80" data-max-width="110">{{ lang._('Signal') }}</th>
+                <th data-column-id="quality" data-formatter="bars" data-min-width="60" data-max-width="80">{{ lang._('Quality') }}</th>
                 <th data-column-id="ip" data-formatter="text" data-width="10em">{{ lang._('Address') }}</th>
                 <th data-column-id="type" data-formatter="text">{{ lang._('Type') }}</th>
                 <th data-column-id="maker" data-formatter="text" data-visible="false">{{ lang._('Maker') }}</th>
@@ -372,6 +511,29 @@ POSSIBILITY OF SUCH DAMAGE.
             </tr></thead>
             <tbody></tbody>
         </table>
+        </div>
+        <div id="clients_moves" style="display: none">
+            <table id="grid_moves" class="table table-condensed table-hover table-striped table-responsive">
+                <thead><tr>
+                    <th data-column-id="id" data-identifier="true" data-visible="false">ID</th>
+                    <th data-column-id="ts" data-formatter="when" data-width="10em">{{ lang._('When') }}</th>
+                    <th data-column-id="name" data-formatter="client">{{ lang._('Client') }}</th>
+                    <th data-column-id="to_unit" data-formatter="move" data-sortable="false">{{ lang._('Moved') }}</th>
+                    <th data-column-id="band_to" data-formatter="bands" data-sortable="false" data-width="10em">{{ lang._('Band') }}</th>
+                    <th data-column-id="type" data-formatter="text" data-visible="false">{{ lang._('Type') }}</th>
+                </tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="client_detail" style="display: none; padding: 10px">
+            <p><a href="#clients">← {{ lang._('All clients') }}</a></p>
+            <div class="btn-group eero-period" style="margin-bottom: 15px">
+                <button type="button" class="btn btn-default" data-hours="24">{{ lang._('1 day') }}</button>
+                <button type="button" class="btn btn-default" data-hours="168">{{ lang._('7 days') }}</button>
+                <button type="button" class="btn btn-default" data-hours="720">{{ lang._('30 days') }}</button>
+            </div>
+            <div id="client_detail_body">{{ lang._('Loading…') }}</div>
+        </div>
     </div>
     <div id="network" class="tab-pane fade in">
         <div id="network_body" style="padding: 10px">{{ lang._('Loading…') }}</div>

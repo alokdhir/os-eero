@@ -128,6 +128,15 @@ class TestPoller(unittest.TestCase):
         self.assertEqual([(e["mac"], e["event"], e["from_unit"], e["to_unit"]) for e in ev],
                          [("02:00:00:00:03:02", "roamed", "Garage", "Hallway")])
 
+    def test_history_start_recorded_once(self):
+        self.sessions.save("tok")
+        self.run_for(0, 10)
+        self.assertNotIn("history_since", self.store.state())                  # nothing compared yet
+        self.run_for(61, 3)
+        self.assertEqual(self.store.state()["history_since"], 2)               # the first clients snapshot
+        self.run_for(122, 3)
+        self.assertEqual(self.store.state()["history_since"], 2)
+
     def test_no_history_across_a_long_gap(self):
         self.sessions.save("tok")
         self.run_for(0, 10)

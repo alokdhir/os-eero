@@ -40,6 +40,7 @@ class ReportController extends ApiControllerBase
     private const SEARCH = [
         'units' => ['name', 'model', 'ip', 'backhaul', 'firmware'],
         'clients' => ['name', 'unit', 'band', 'ip', 'mac', 'type', 'maker'],
+        'moves' => ['name', 'from_unit', 'to_unit', 'type'],
     ];
 
     private function query(array $args)
@@ -66,27 +67,78 @@ class ReportController extends ApiControllerBase
         return (is_array($data) && ($data['version'] ?? null) === 1 && is_array($data['devices'] ?? null)) ? $data['devices'] : [];
     }
 
-    public function searchClientsAction()
+    /** Loupe's icon, type, name (where eero has none) and vendor on client rows, in place. */
+    private function decorate(array &$rows)
     {
-        $all = $this->request->getPost('show', null, '') === 'all';
-        $rows = $this->query($all ? ['clients', 'all'] : ['clients']);
-        $known = $this->loupeIdentities(array_column($rows, 'mac'));
+        $known = $this->loupeIdentities(array_values(array_unique(array_column($rows, 'mac'))));
         foreach ($rows as &$row) {
             $id = $known[$row['mac']] ?? [];
             $row['icon'] = (string)($id['icon'] ?? '');
             if (!empty($id['type'])) {
                 $row['type'] = (string)$id['type'];             // Loupe's type is more specific than eero's guess
             }
-            if (empty($row['named']) && !empty($id['name'])) {
-                $row['name'] = (string)$id['name'];             // a name set in the eero app wins; else Loupe's
-            } elseif (!empty($row['vendor_name']) && !empty($id['type'])) {
-                $row['name'] = (string)$id['type'];             // no name anywhere: "Ceiling fan", not the chip maker
+            /* names, best first: set in the eero app; the device's own (eero's host name); Loupe's; Loupe's type.
+               Loupe's name only replaces eero's when eero has nothing but the Wi-Fi chip maker. */
+            if (empty($row['named']) && !empty($row['vendor_name'])) {
+                if (!empty($id['name'])) {
+                    $row['name'] = (string)$id['name'];
+                } elseif (!empty($id['type'])) {
+                    $row['name'] = (string)$id['type'];         // "Ceiling fan (fanSync)", not the chip maker
+                }
             }
             if (!empty($id['vendor'])) {
                 $row['maker'] = (string)$id['vendor'];          // Loupe's vendor ("Fanimation", not its Wi-Fi module)
             }
         }
+    }
+
+    private function hours($hours)
+    {
+        $hours = (float)$hours;
+        return ($hours >= 1 && $hours <= 720) ? (string)$hours : '24';
+    }
+
+    public function searchClientsAction()
+    {
+        $all = $this->request->getPost('show', null, '') === 'all';
+        $rows = $this->query($all ? ['clients', 'all'] : ['clients']);
+        $this->decorate($rows);
         return $this->searchRecordsetBase($rows, self::SEARCH['clients'], 'name');
+    }
+
+    /** One client's page: now, time on each eero, its moves. */
+    public function clientAction($mac = '', $hours = 24)
+    {
+        $mac = strtolower(rawurldecode($mac));
+        if (!preg_match('/^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/', $mac)) {
+            return ['error' => 'invalid MAC address'];
+        }
+        $page = $this->query(['client', $mac, $this->hours($hours)]);
+        if (!empty($page['client'])) {
+            $rows = [$page['client']];
+            $this->decorate($rows);
+            $page['client'] = $rows[0];
+        }
+        return $page;
+    }
+
+    /** Recent moves across all clients, named and iconed like the Clients grid. */
+    public function searchMovesAction()
+    {
+        $events = $this->query(['moves', $this->hours($this->request->getPost('hours', null, 24))]);
+        $current = [];
+        foreach ($this->query(['clients', 'all']) as $c) {
+            $current[$c['mac']] = $c;
+        }
+        $rows = [];
+        foreach ($events as $i => $e) {
+            $c = $current[$e['mac']] ?? [];
+            $rows[] = $e + ['id' => $i, 'named' => $c['named'] ?? false, 'vendor_name' => $c['vendor_name'] ?? false,
+                            'type' => $c['type'] ?? '', 'maker' => $c['maker'] ?? '',
+                            'name' => $c['name'] ?? ($e['name'] ?? $e['mac'])];
+        }
+        $this->decorate($rows);
+        return $this->searchRecordsetBase($rows, self::SEARCH['moves'], 'ts', null, SORT_NUMERIC);
     }
 
     public function networkAction()

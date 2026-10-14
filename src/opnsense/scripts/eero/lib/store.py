@@ -121,6 +121,9 @@ class Store:
         args.append(int(limit))
         return [dict(zip(cols, r)) for r in self.db.execute(sql, args)]
 
+    def earliest_client_event(self):
+        return self.db.execute('SELECT min(ts) FROM client_events').fetchone()[0]
+
     def unit_events(self, since, limit=1000):
         cols = ('ts', 'unit', 'location', 'event')
         return [dict(zip(cols, r)) for r in self.db.execute(

@@ -60,6 +60,7 @@ class Poller:
         self.backoff_until = 0
         self.pruned = 0
         self._said = None
+        self._history_since = None
 
     # --- status
 
@@ -122,6 +123,7 @@ class Poller:
             prev_at, prev = self.store.get(kind)
             if prev is not None and prev_at is not None and now - prev_at <= EVENT_GAP:
                 if kind == 'clients':
+                    self._mark_history_start(prev_at)
                     self.store.add_client_events(client_events(prev, doc, int(now)))
                 else:
                     self.store.add_unit_events(unit_events(prev, doc, int(now)))
@@ -133,6 +135,16 @@ class Poller:
                 return
             self.net = doc[0]                                    # one network per account for now
             self.store.set_state(network=self.net)
+
+    def _mark_history_start(self, prev_at):
+        """Remember when client history began (the first snapshot compared), once: the client page doesn't
+        count time before it."""
+        if self._history_since is None:
+            self._history_since = self.store.state().get('history_since')
+            if self._history_since is None:
+                first = self.store.earliest_client_event()
+                self._history_since = int(min(prev_at, first - 60) if first is not None else prev_at)
+                self.store.set_state(history_since=self._history_since)
 
     def _due(self, now):
         for kind, every in SCHEDULE:
