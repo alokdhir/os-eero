@@ -1,0 +1,19 @@
+#!/bin/sh
+# PROVIDE: eero
+# REQUIRE: SERVERS
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=eero
+rcvar=eero_enable
+load_rc_config $name
+
+: ${eero_enable:=NO}
+
+pidfile="/var/run/${name}.pid"
+procname="daemon"
+command="/usr/sbin/daemon"
+command_args="-f -r -R 5 -P ${pidfile} -T eero /usr/local/opnsense/scripts/eero/eerod.py"
+
+run_rc_command "$1"

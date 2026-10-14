@@ -1,0 +1,9 @@
+<acl>
+    <page-eero>
+        <name>eero</name>
+        <patterns>
+            <pattern>ui/eero/*</pattern>
+            <pattern>api/eero/*</pattern>
+        </patterns>
+    </page-eero>
+</acl>

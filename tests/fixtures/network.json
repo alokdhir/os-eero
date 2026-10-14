@@ -1,0 +1,438 @@
+{
+  "data": {
+    "auto_setup_mode": "LTS",
+    "band_steering": true,
+    "clients": {
+      "count": 4,
+      "url": "/2.2/networks/1000001/devices"
+    },
+    "connection": {
+      "mode": "bridged"
+    },
+    "dhcp": {
+      "custom": null,
+      "custom_v2": null,
+      "mode": "automatic"
+    },
+    "display_name": "Example",
+    "dns": {
+      "caching": true,
+      "custom": null,
+      "mode": "automatic",
+      "parent": {
+        "ips": [
+          "192.0.2.1"
+        ]
+      }
+    },
+    "eeros": {
+      "count": 3,
+      "data": [
+        {
+          "bands": [
+            "band_2_4GHz",
+            "band_5GHz_low",
+            "band_5GHz_high"
+          ],
+          "connected_clients_count": 3,
+          "connected_wired_clients_count": 1,
+          "connected_wireless_clients_count": 2,
+          "connection_type": "WIRED",
+          "ethernet_addresses": [
+            "02:00:00:00:02:01"
+          ],
+          "ethernet_status": {
+            "segmentId": "seg1",
+            "statuses": [
+              {
+                "bandwidth_usage": {},
+                "derated_reason": null,
+                "hasCarrier": true,
+                "interfaceNumber": 0,
+                "isLeafWiredToUpstream": true,
+                "isLte": false,
+                "isWanPort": false,
+                "lldpInfo": [],
+                "neighbor": null,
+                "original_speed": null,
+                "poe": null,
+                "port_name": "1",
+                "port_security": null,
+                "power_saving": false,
+                "speed": "P1000"
+              }
+            ]
+          },
+          "gateway": false,
+          "heartbeat_ok": true,
+          "ip_address": "192.0.2.11",
+          "is_primary_node": true,
+          "joined": "2024-01-01T00:00:00.000Z",
+          "last_heartbeat": "2026-01-15T11:59:30.000Z",
+          "last_reboot": "2026-01-12T12:00:00.000Z",
+          "location": "Hallway",
+          "mac_address": "02:00:00:00:01:01",
+          "mesh_quality_bars": 5,
+          "model": "eero Pro 6",
+          "model_number": "S010001",
+          "network": {
+            "name": "Example",
+            "url": "/2.2/networks/1000001"
+          },
+          "os": "eeroOS",
+          "os_version": "v7.17.2-139",
+          "power_info": {
+            "power_source": "adapter",
+            "power_source_metadata": {}
+          },
+          "provides_wifi": true,
+          "radio_channel_stats": {
+            "band_2_4GHz": {
+              "channel": 6,
+              "channel_utilization": 12,
+              "channel_width": 20,
+              "client_count": 1,
+              "tx_power": 20
+            },
+            "band_5GHz_high": {
+              "channel": 149,
+              "channel_utilization": 12,
+              "channel_width": 80,
+              "client_count": 1,
+              "tx_power": 20
+            },
+            "band_5GHz_low": {
+              "channel": 36,
+              "channel_utilization": 12,
+              "channel_width": 80,
+              "client_count": 1,
+              "tx_power": 20
+            }
+          },
+          "resources": {
+            "connections": "/2.2/eeros/2000001/connections",
+            "led_action": "/2.2/eeros/2000001/led",
+            "reboot": "/2.2/eeros/2000001/reboot"
+          },
+          "serial": "GGC0000000001",
+          "state": "ONLINE",
+          "status": "green",
+          "update_available": false,
+          "uptime": {
+            "since_cloud_connection_s": 259200,
+            "since_last_reboot_s": 259200
+          },
+          "url": "/2.2/eeros/2000001",
+          "using_wan": false,
+          "wired": true,
+          "wireless_upstream_node": null
+        },
+        {
+          "bands": [
+            "band_2_4GHz",
+            "band_5GHz_low",
+            "band_5GHz_high"
+          ],
+          "connected_clients_count": 1,
+          "connected_wired_clients_count": 0,
+          "connected_wireless_clients_count": 1,
+          "connection_type": "WIRED_POE",
+          "ethernet_addresses": [
+            "02:00:00:00:02:02"
+          ],
+          "ethernet_status": {
+            "segmentId": "seg1",
+            "statuses": [
+              {
+                "bandwidth_usage": {},
+                "derated_reason": null,
+                "hasCarrier": true,
+                "interfaceNumber": 0,
+                "isLeafWiredToUpstream": true,
+                "isLte": false,
+                "isWanPort": false,
+                "lldpInfo": [],
+                "neighbor": null,
+                "original_speed": null,
+                "poe": null,
+                "port_name": "1",
+                "port_security": null,
+                "power_saving": false,
+                "speed": "P1000"
+              }
+            ]
+          },
+          "gateway": false,
+          "heartbeat_ok": true,
+          "ip_address": "192.0.2.12",
+          "is_primary_node": false,
+          "joined": "2024-01-01T00:00:00.000Z",
+          "last_heartbeat": "2026-01-15T11:59:30.000Z",
+          "last_reboot": "2026-01-12T12:00:00.000Z",
+          "location": "Garage",
+          "mac_address": "02:00:00:00:01:02",
+          "mesh_quality_bars": 5,
+          "model": "eero PoE 6",
+          "model_number": "S010001",
+          "network": {
+            "name": "Example",
+            "url": "/2.2/networks/1000001"
+          },
+          "os": "eeroOS",
+          "os_version": "v7.17.2-139",
+          "power_info": {
+            "power_source": "poe",
+            "power_source_metadata": {}
+          },
+          "provides_wifi": true,
+          "radio_channel_stats": {
+            "band_2_4GHz": {
+              "channel": 6,
+              "channel_utilization": 12,
+              "channel_width": 20,
+              "client_count": 1,
+              "tx_power": 20
+            },
+            "band_5GHz_high": {
+              "channel": 149,
+              "channel_utilization": 12,
+              "channel_width": 80,
+              "client_count": 1,
+              "tx_power": 20
+            },
+            "band_5GHz_low": {
+              "channel": 36,
+              "channel_utilization": 12,
+              "channel_width": 80,
+              "client_count": 1,
+              "tx_power": 20
+            }
+          },
+          "resources": {
+            "connections": "/2.2/eeros/2000002/connections",
+            "led_action": "/2.2/eeros/2000002/led",
+            "reboot": "/2.2/eeros/2000002/reboot"
+          },
+          "serial": "GGC0000000002",
+          "state": "ONLINE",
+          "status": "green",
+          "update_available": false,
+          "uptime": {
+            "since_cloud_connection_s": 259200,
+            "since_last_reboot_s": 259200
+          },
+          "url": "/2.2/eeros/2000002",
+          "using_wan": false,
+          "wired": true,
+          "wireless_upstream_node": null
+        },
+        {
+          "bands": [
+            "band_2_4GHz",
+            "band_5GHz_low",
+            "band_5GHz_high"
+          ],
+          "connected_clients_count": 1,
+          "connected_wired_clients_count": 0,
+          "connected_wireless_clients_count": 1,
+          "connection_type": "WIRELESS",
+          "ethernet_addresses": [
+            "02:00:00:00:02:03"
+          ],
+          "ethernet_status": {
+            "segmentId": "seg1",
+            "statuses": [
+              {
+                "bandwidth_usage": {},
+                "derated_reason": null,
+                "hasCarrier": false,
+                "interfaceNumber": 0,
+                "isLeafWiredToUpstream": false,
+                "isLte": false,
+                "isWanPort": false,
+                "lldpInfo": [],
+                "neighbor": null,
+                "original_speed": null,
+                "poe": null,
+                "port_name": "1",
+                "port_security": null,
+                "power_saving": false,
+                "speed": "P0"
+              }
+            ]
+          },
+          "gateway": false,
+          "heartbeat_ok": true,
+          "ip_address": "192.0.2.13",
+          "is_primary_node": false,
+          "joined": "2024-01-01T00:00:00.000Z",
+          "last_heartbeat": "2026-01-15T11:59:30.000Z",
+          "last_reboot": "2026-01-12T12:00:00.000Z",
+          "location": "Patio",
+          "mac_address": "02:00:00:00:01:03",
+          "mesh_quality_bars": 4,
+          "model": "eero",
+          "model_number": "S010001",
+          "network": {
+            "name": "Example",
+            "url": "/2.2/networks/1000001"
+          },
+          "os": "eeroOS",
+          "os_version": "v7.17.2-139",
+          "power_info": {
+            "power_source": "adapter",
+            "power_source_metadata": {}
+          },
+          "provides_wifi": true,
+          "radio_channel_stats": {
+            "band_2_4GHz": {
+              "channel": 6,
+              "channel_utilization": 12,
+              "channel_width": 20,
+              "client_count": 1,
+              "tx_power": 20
+            },
+            "band_5GHz_high": {
+              "channel": 149,
+              "channel_utilization": 12,
+              "channel_width": 80,
+              "client_count": 1,
+              "tx_power": 20
+            },
+            "band_5GHz_low": {
+              "channel": 36,
+              "channel_utilization": 12,
+              "channel_width": 80,
+              "client_count": 1,
+              "tx_power": 20
+            }
+          },
+          "resources": {
+            "connections": "/2.2/eeros/2000003/connections",
+            "led_action": "/2.2/eeros/2000003/led",
+            "reboot": "/2.2/eeros/2000003/reboot"
+          },
+          "serial": "GGC0000000003",
+          "state": "ONLINE",
+          "status": "green",
+          "update_available": false,
+          "uptime": {
+            "since_cloud_connection_s": 259200,
+            "since_last_reboot_s": 259200
+          },
+          "url": "/2.2/eeros/2000003",
+          "using_wan": false,
+          "wired": false,
+          "wireless_upstream_node": {
+            "is_proxied_node": false,
+            "name": "Hallway",
+            "node_or_proxied_node_id": 777,
+            "primary_mesh_radio": "5GHz"
+          }
+        }
+      ]
+    },
+    "gateway": "bridged",
+    "guest_network": {
+      "enabled": true,
+      "name": "Example Guest",
+      "password": "SECRET-guest-password",
+      "resources": {
+        "password": "SECRET-guest-password"
+      },
+      "url": "/2.2/networks/1000001/guestnetwork"
+    },
+    "health": {
+      "eero_network": {
+        "status": "connected"
+      },
+      "internet": {
+        "isp_up": true,
+        "status": "connected"
+      }
+    },
+    "homekit": {
+      "enabled": false,
+      "enabledLastChanged": "2024-01-01T00:00:00.000Z",
+      "managedNetworkEnabled": false
+    },
+    "ip_settings": {
+      "double_nat": false,
+      "public_ip": "203.0.113.5"
+    },
+    "lease": {
+      "dhcp": {
+        "ip": "192.0.2.11",
+        "mask": "255.255.255.0",
+        "router": "192.0.2.1"
+      },
+      "mode": "dhcp",
+      "static": null
+    },
+    "mlo_mode": "disabled",
+    "name": "Example",
+    "offline_eeros_count": 0,
+    "online_eeros_count": 3,
+    "password": "SECRET-wifi-password",
+    "pending_eeros_count": 0,
+    "resources": {
+      "devices": "/2.2/networks/1000001/devices",
+      "eeros": "/2.2/networks/1000001/eeros",
+      "guestnetwork": "/2.2/networks/1000001/guestnetwork",
+      "password": "/2.2/networks/1000001/password",
+      "reboot": "/2.2/networks/1000001/reboot",
+      "speedtest": "/2.2/networks/1000001/speedtest",
+      "thread": "/2.2/networks/1000001/thread",
+      "updates": "/2.2/networks/1000001/updates"
+    },
+    "speed": {
+      "date": "2026-01-15T03:00:00.000Z",
+      "down": {
+        "units": "Mbps",
+        "value": 940.5
+      },
+      "node_status": {
+        "alive": true,
+        "last_seen_at": "2026-01-15T03:00:00.000Z"
+      },
+      "status": "complete",
+      "up": {
+        "units": "Mbps",
+        "value": 880.2
+      }
+    },
+    "status": "connected",
+    "thread": false,
+    "timezone": {
+      "geo_ip": "America/New_York",
+      "value": "America/New_York"
+    },
+    "updates": {
+      "can_update_now": false,
+      "has_update": false,
+      "last_update_started": "2026-01-01T03:00:00.000Z",
+      "last_user_update": {
+        "incomplete_eeros": [],
+        "last_update_started": "2026-01-01T03:00:00.000Z",
+        "unresponsive_eeros": []
+      },
+      "manifest_resource": "",
+      "min_required_firmware": "v7.0.0",
+      "preferred_update_hour": 3,
+      "scheduled_update_time": null,
+      "target_firmware": "v7.17.2-139",
+      "update_required": false,
+      "update_status": null,
+      "update_to_firmware": "v7.17.2-139"
+    },
+    "upnp": true,
+    "url": "/2.2/networks/1000001",
+    "wan_type": "NONE",
+    "wireless_mode": "default",
+    "wpa3": false
+  },
+  "meta": {
+    "code": 200,
+    "server_time": "2026-01-15T12:00:00.000Z"
+  }
+}

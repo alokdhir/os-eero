@@ -1,0 +1,23 @@
+{
+  "data": {
+    "email": {
+      "value": "user@example.com",
+      "verified": true
+    },
+    "name": "Example User",
+    "networks": {
+      "count": 1,
+      "data": [
+        {
+          "created": "2024-01-01T00:00:00.000Z",
+          "name": "Example",
+          "url": "/2.2/networks/1000001"
+        }
+      ]
+    }
+  },
+  "meta": {
+    "code": 200,
+    "server_time": "2026-01-15T12:00:00.000Z"
+  }
+}

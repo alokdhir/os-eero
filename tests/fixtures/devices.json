@@ -1,0 +1,344 @@
+{
+  "data": [
+    {
+      "blacklisted": false,
+      "connected": true,
+      "connection_type": "wireless",
+      "connectivity": {
+        "bssid": "02:00:00:00:04:01",
+        "ethernet_status": null,
+        "frequency": 5180,
+        "inactive_time_ms": 120,
+        "packet_stats": {
+          "rx_drop_ppm": 0,
+          "rx_drops": 0,
+          "rx_packets": 1000,
+          "total_packets": 1900,
+          "tx_fail_ppm": 0,
+          "tx_packets": 900,
+          "tx_retransmit_ppm": 10,
+          "tx_retries": 9
+        },
+        "rx_bitrate": "864.8 MBit/s",
+        "rx_rate_info": {
+          "channel_width": "80",
+          "guard_interval": null,
+          "mcs": 9,
+          "nss": 2,
+          "phy_type": "VHT",
+          "rate_bps": 864800000
+        },
+        "score": 92,
+        "score_bars": 5,
+        "signal": "-52 dBm",
+        "signal_avg": "-54 dBm",
+        "snr": 38,
+        "tx_rate_info": {
+          "channel_width": "80",
+          "guard_interval": null,
+          "mcs": 8,
+          "nss": 2,
+          "phy_type": "VHT",
+          "rate_bps": 780000000
+        },
+        "tx_retry_pct": 1
+      },
+      "device_type": "laptop_computer",
+      "display_name": "Work laptop",
+      "first_active": "2025-06-01T00:00:00.000Z",
+      "hostname": "laptop-1",
+      "interface": {
+        "frequency": "5",
+        "frequency_unit": "GHz"
+      },
+      "ip": "192.0.2.101",
+      "ips": [
+        "192.0.2.101"
+      ],
+      "ipv4": "192.0.2.101",
+      "ipv6_addresses": [],
+      "is_guest": false,
+      "is_private": false,
+      "last_active": "2026-01-15T11:59:00.000Z",
+      "mac": "02:00:00:00:03:01",
+      "manufacturer": "Example Corp",
+      "model_name": null,
+      "nickname": "Work laptop",
+      "paused": false,
+      "profile": null,
+      "source": {
+        "display_name": "Hallway",
+        "is_gateway": false,
+        "is_proxied_node": false,
+        "location": "Hallway",
+        "model": "eero Pro 6",
+        "serial_number": "GGC0000000001",
+        "url": "/2.2/eeros/2000001"
+      },
+      "subnet_kind": "main",
+      "url": "/2.2/networks/1000001/devices/020000000301",
+      "usage": {
+        "down_mbps": 3,
+        "up_mbps": 1
+      },
+      "wireless": true
+    },
+    {
+      "blacklisted": false,
+      "connected": true,
+      "connection_type": "wireless",
+      "connectivity": {
+        "bssid": "02:00:00:00:04:01",
+        "ethernet_status": null,
+        "frequency": 2437,
+        "inactive_time_ms": 120,
+        "packet_stats": {
+          "rx_drop_ppm": 0,
+          "rx_drops": 0,
+          "rx_packets": 1000,
+          "total_packets": 1900,
+          "tx_fail_ppm": 0,
+          "tx_packets": 900,
+          "tx_retransmit_ppm": 10,
+          "tx_retries": 9
+        },
+        "rx_bitrate": "864.8 MBit/s",
+        "rx_rate_info": {
+          "channel_width": "80",
+          "guard_interval": null,
+          "mcs": 9,
+          "nss": 2,
+          "phy_type": "VHT",
+          "rate_bps": 864800000
+        },
+        "score": 92,
+        "score_bars": 5,
+        "signal": "-52 dBm",
+        "signal_avg": "-54 dBm",
+        "snr": 38,
+        "tx_rate_info": {
+          "channel_width": "80",
+          "guard_interval": null,
+          "mcs": 8,
+          "nss": 2,
+          "phy_type": "VHT",
+          "rate_bps": 780000000
+        },
+        "tx_retry_pct": 1
+      },
+      "device_type": "phone",
+      "display_name": "phone-1",
+      "first_active": "2025-06-01T00:00:00.000Z",
+      "hostname": "phone-1",
+      "interface": {
+        "frequency": "2.4",
+        "frequency_unit": "GHz"
+      },
+      "ip": "192.0.2.102",
+      "ips": [
+        "192.0.2.102"
+      ],
+      "ipv4": "192.0.2.102",
+      "ipv6_addresses": [],
+      "is_guest": false,
+      "is_private": true,
+      "last_active": "2026-01-15T11:59:00.000Z",
+      "mac": "02:00:00:00:03:02",
+      "manufacturer": "Example Corp",
+      "model_name": null,
+      "nickname": null,
+      "paused": false,
+      "profile": null,
+      "source": {
+        "display_name": "Garage",
+        "is_gateway": false,
+        "is_proxied_node": false,
+        "location": "Garage",
+        "model": "eero PoE 6",
+        "serial_number": "GGC0000000002",
+        "url": "/2.2/eeros/2000002"
+      },
+      "subnet_kind": "main",
+      "url": "/2.2/networks/1000001/devices/020000000302",
+      "usage": {
+        "down_mbps": 3,
+        "up_mbps": 1
+      },
+      "wireless": true
+    },
+    {
+      "blacklisted": false,
+      "connected": true,
+      "connection_type": "wired",
+      "connectivity": null,
+      "device_type": "printer",
+      "display_name": "printer-1",
+      "first_active": "2025-06-01T00:00:00.000Z",
+      "hostname": "printer-1",
+      "interface": {
+        "frequency": null,
+        "frequency_unit": null
+      },
+      "ip": "192.0.2.103",
+      "ips": [
+        "192.0.2.103"
+      ],
+      "ipv4": "192.0.2.103",
+      "ipv6_addresses": [],
+      "is_guest": false,
+      "is_private": false,
+      "last_active": "2026-01-15T11:59:00.000Z",
+      "mac": "02:00:00:00:03:03",
+      "manufacturer": "Example Corp",
+      "model_name": null,
+      "nickname": null,
+      "paused": false,
+      "profile": null,
+      "source": {
+        "display_name": "Hallway",
+        "is_gateway": false,
+        "is_proxied_node": false,
+        "location": "Hallway",
+        "model": "eero Pro 6",
+        "serial_number": "GGC0000000001",
+        "url": "/2.2/eeros/2000001"
+      },
+      "subnet_kind": "main",
+      "url": "/2.2/networks/1000001/devices/020000000303",
+      "usage": {
+        "down_mbps": 3,
+        "up_mbps": 1
+      },
+      "wireless": false
+    },
+    {
+      "blacklisted": false,
+      "connected": false,
+      "connection_type": "wireless",
+      "connectivity": null,
+      "device_type": "tablet",
+      "display_name": "tablet-1",
+      "first_active": "2025-06-01T00:00:00.000Z",
+      "hostname": "tablet-1",
+      "interface": {
+        "frequency": "5",
+        "frequency_unit": "GHz"
+      },
+      "ip": "192.0.2.104",
+      "ips": [
+        "192.0.2.104"
+      ],
+      "ipv4": "192.0.2.104",
+      "ipv6_addresses": [],
+      "is_guest": false,
+      "is_private": false,
+      "last_active": "2026-01-10T08:00:00.000Z",
+      "mac": "02:00:00:00:03:04",
+      "manufacturer": "Example Corp",
+      "model_name": null,
+      "nickname": null,
+      "paused": false,
+      "profile": null,
+      "source": {
+        "display_name": "Patio",
+        "is_gateway": false,
+        "is_proxied_node": false,
+        "location": "Patio",
+        "model": "eero",
+        "serial_number": "GGC0000000003",
+        "url": "/2.2/eeros/2000003"
+      },
+      "subnet_kind": "main",
+      "url": "/2.2/networks/1000001/devices/020000000304",
+      "usage": null,
+      "wireless": true
+    },
+    {
+      "blacklisted": false,
+      "connected": true,
+      "connection_type": "wireless",
+      "connectivity": {
+        "bssid": "02:00:00:00:04:01",
+        "ethernet_status": null,
+        "frequency": 2437,
+        "inactive_time_ms": 120,
+        "packet_stats": {
+          "rx_drop_ppm": 0,
+          "rx_drops": 0,
+          "rx_packets": 1000,
+          "total_packets": 1900,
+          "tx_fail_ppm": 0,
+          "tx_packets": 900,
+          "tx_retransmit_ppm": 10,
+          "tx_retries": 9
+        },
+        "rx_bitrate": "864.8 MBit/s",
+        "rx_rate_info": {
+          "channel_width": "80",
+          "guard_interval": null,
+          "mcs": 9,
+          "nss": 2,
+          "phy_type": "VHT",
+          "rate_bps": 864800000
+        },
+        "score": 92,
+        "score_bars": 5,
+        "signal": "-52 dBm",
+        "signal_avg": "-54 dBm",
+        "snr": 38,
+        "tx_rate_info": {
+          "channel_width": "80",
+          "guard_interval": null,
+          "mcs": 8,
+          "nss": 2,
+          "phy_type": "VHT",
+          "rate_bps": 780000000
+        },
+        "tx_retry_pct": 1
+      },
+      "device_type": "television",
+      "display_name": "tv \"den\" <b>",
+      "first_active": "2025-06-01T00:00:00.000Z",
+      "hostname": "tv \"den\" <b>",
+      "interface": {
+        "frequency": "2.4",
+        "frequency_unit": "GHz"
+      },
+      "ip": "192.0.2.105",
+      "ips": [
+        "192.0.2.105"
+      ],
+      "ipv4": "192.0.2.105",
+      "ipv6_addresses": [],
+      "is_guest": false,
+      "is_private": false,
+      "last_active": "2026-01-15T11:59:00.000Z",
+      "mac": "02:00:00:00:03:05",
+      "manufacturer": "Example Corp",
+      "model_name": null,
+      "nickname": null,
+      "paused": false,
+      "profile": null,
+      "source": {
+        "display_name": "Patio",
+        "is_gateway": false,
+        "is_proxied_node": false,
+        "location": "Patio",
+        "model": "eero",
+        "serial_number": "GGC0000000003",
+        "url": "/2.2/eeros/2000003"
+      },
+      "subnet_kind": "main",
+      "url": "/2.2/networks/1000001/devices/020000000305",
+      "usage": {
+        "down_mbps": 3,
+        "up_mbps": 1
+      },
+      "wireless": true
+    }
+  ],
+  "meta": {
+    "code": 200,
+    "server_time": "2026-01-15T12:00:00.000Z"
+  }
+}

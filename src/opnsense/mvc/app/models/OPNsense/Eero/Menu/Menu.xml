@@ -1,0 +1,4 @@
+<menu>
+    <!-- a top-level link: it must have no children (not even hidden ones), or the menu shows it as a section -->
+    <Eero VisibleName="Eero" order="65" cssClass="fa fa-wifi" url="/ui/eero/"/>
+</menu>

@@ -1,0 +1,13 @@
+<model>
+    <mount>//OPNsense/Eero</mount>
+    <version>0.1.0</version>
+    <description>eero mesh Wi-Fi status</description>
+    <items>
+        <general>
+            <enabled type="BooleanField">
+                <Default>0</Default>
+                <Required>Y</Required>
+            </enabled>
+        </general>
+    </items>
+</model>

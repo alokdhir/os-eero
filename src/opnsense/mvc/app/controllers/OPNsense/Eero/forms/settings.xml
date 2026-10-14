@@ -1,0 +1,8 @@
+<form>
+    <field>
+        <id>eero.general.enabled</id>
+        <label>Enable</label>
+        <type>checkbox</type>
+        <help>Poll eero for the state of your units and clients.</help>
+    </field>
+</form>

@@ -1,0 +1,14 @@
+Shows what an eero mesh Wi-Fi network is doing, from the OPNsense GUI: each
+eero unit (online, model, firmware, backhaul, clients), every client (which
+unit it is on, band, signal, rate) and the network's settings, read-only.
+
+A small service polls eero's cloud API (the one the eero app uses) at a
+gentle, rate-limited pace and keeps the results in SQLite; the GUI only
+reads that copy. Log in once from the GUI with the code eero sends you.
+
+Plugin Changelog
+================
+
+0.1
+
+* Initial release

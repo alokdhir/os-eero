@@ -1,0 +1,21 @@
+{
+  "data": {
+    "border_agent": {
+      "ip": "192.0.2.11",
+      "port": 49191
+    },
+    "channel": 15,
+    "commissioning_credential": "SECRET-credential",
+    "enable_credential_syncing": false,
+    "enabled": false,
+    "master_key": "SECRET-master-key",
+    "name": "Example-Thread",
+    "pan_id": "SECRET-pan",
+    "url": "/2.2/networks/1000001/thread",
+    "xpan_id": "SECRET-xpan"
+  },
+  "meta": {
+    "code": 200,
+    "server_time": "2026-01-15T12:00:00.000Z"
+  }
+}
