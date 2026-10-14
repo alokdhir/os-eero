@@ -23,15 +23,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""eero status poller (placeholder).
+"""eero status poller. Started by rc.d/eero under daemon(8).
 
-Started by rc.d/eero under daemon(8). For now it only waits, so the service plumbing (enable, start, stop,
-status, Apply) can be tested; polling eero comes with the API client.
+The only thing in the plugin that talks to eero: it polls on a fixed, gentle schedule (lib/poller.py), keeps
+the answers and the roaming history in /var/db/eero/eero.db, and the GUI reads that.
 """
 
+import os
 import signal
+import sys
 import syslog
 import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from lib import client as api                  # noqa: E402
+from lib.poller import Poller                  # noqa: E402
+from lib.session import SessionStore           # noqa: E402
+from lib.store import Store                    # noqa: E402
+
+
+CONDITIONS = {'signed out': 'signed out', 'signed out by eero': 'signed out', 'rate limited': 'rate limited',
+              'error': 'error'}
 
 
 def main():
@@ -44,10 +57,32 @@ def main():
 
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
-    syslog.syslog(syslog.LOG_NOTICE, 'started (polling not built yet)')
-    while running:
-        time.sleep(1)
-    syslog.syslog(syslog.LOG_NOTICE, 'stopped')
+
+    transport = api.RequestsTransport()
+    store = Store()
+    poller = Poller(store, SessionStore(), lambda token: api.Client(transport, token))
+    syslog.syslog(syslog.LOG_NOTICE, 'started')
+    condition = None                            # log changes of condition, not every fetch
+    try:
+        while running:
+            try:
+                what = poller.step()
+            except Exception as e:                  # keep running; daemon(8) would restart us anyway
+                syslog.syslog(syslog.LOG_ERR, 'internal error: %s: %s' % (type(e).__name__, e))
+                what = 'error'
+                time.sleep(30)
+            now = CONDITIONS.get(what, 'ok' if what.startswith('fetched') else condition)
+            if now != condition:
+                message = store.state().get('message')
+                syslog.syslog(syslog.LOG_NOTICE if now == 'ok' else syslog.LOG_WARNING,
+                              'polling eero' if now == 'ok' else '%s: %s' % (now, message))
+                condition = now
+            time.sleep(5 if what == 'signed out' else 1)
+    finally:
+        store.set_state(status='stopped', message=None)
+        store.close()
+        transport.close()
+        syslog.syslog(syslog.LOG_NOTICE, 'stopped')
 
 
 if __name__ == '__main__':

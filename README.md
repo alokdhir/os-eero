@@ -3,7 +3,7 @@
 See what your eero mesh Wi-Fi is doing from the OPNsense GUI: every eero unit, every client and
 which unit it's on, and the network's settings. Read-only: changes stay in the eero app.
 
-**Status: early development.** The plugin installs, but it doesn't poll eero yet.
+**Status: early development.** Sign-in, polling and roaming history work; the Devices, Clients and Network tabs are still placeholders.
 
 ## What it shows
 
