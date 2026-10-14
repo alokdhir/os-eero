@@ -138,7 +138,8 @@ class ReportController extends ApiControllerBase
                             'name' => $c['name'] ?? ($e['name'] ?? $e['mac'])];
         }
         $this->decorate($rows);
-        return $this->searchRecordsetBase($rows, self::SEARCH['moves'], 'ts', null, SORT_NUMERIC);
+        // no default sort key: keep the query's newest-first order (a default key would sort ascending)
+        return $this->searchRecordsetBase($rows, self::SEARCH['moves'], null, null, SORT_NUMERIC);
     }
 
     public function networkAction()
