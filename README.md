@@ -3,16 +3,21 @@
 See what your eero mesh Wi-Fi is doing from the OPNsense GUI: every eero unit, every client and
 which unit it's on, and the network's settings. Read-only: changes stay in the eero app.
 
-**Status: early development.** Sign-in, polling and roaming history work; the Devices, Clients and Network tabs are still placeholders.
+**Status: early development.** Sign-in, polling, the Units, Clients and Network tabs, and recording roaming history work; viewing the history is next.
 
 ## What it shows
 
-- **Devices**: each eero unit: online or not, model, firmware, IP, wired or wireless backhaul
+- **Units**: each eero unit: online or not, model, firmware, IP, wired or wireless backhaul
   (and which unit it hangs off), mesh quality, clients, uptime, radios and ports.
-- **Clients**: every client: name, IP, MAC, which eero it's on, band, signal, link rate, and
-  when it was last seen.
+- **Clients**: every Wi-Fi client: name, which eero it's on, band, signal, link rate, address,
+  and when it was last seen. Wired clients are left out: in bridge mode eero attributes devices on
+  your switches to the nearest unit, so its wired list isn't reliable.
 - **Network**: the eero network's settings and health: bridge or router mode, DHCP and DNS, band
   steering, WPA3, guest network, updates, last speed test.
+
+With [Loupe](https://github.com/alokdhir/os-loupe) installed, clients also get Loupe's device type
+and icon (and its name for devices eero only knows by their Wi-Fi chip's maker). Without it, the
+plugin shows what eero knows.
 
 ## How it works
 

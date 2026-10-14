@@ -65,14 +65,16 @@ class TestClientEvents(unittest.TestCase):
     def test_connect_and_disconnect(self):
         before, after = clients(), clients()
         by_mac(after, "02:00:00:00:03:04")["connected"] = True      # the tablet comes back
-        by_mac(after, "02:00:00:00:03:03")["connected"] = False     # the printer leaves
+        by_mac(after, "02:00:00:00:03:02")["connected"] = False     # the phone leaves
         ev = sorted((e[1], e[3]) for e in client_events(before, after, T))
-        self.assertEqual(ev, [("02:00:00:00:03:03", "disconnected"), ("02:00:00:00:03:04", "connected")])
+        self.assertEqual(ev, [("02:00:00:00:03:02", "disconnected"), ("02:00:00:00:03:04", "connected")])
 
-    def test_wired_has_no_band(self):
-        ev = client_events([], clients(), T)
-        printer = next(e for e in ev if e[1] == "02:00:00:00:03:03")
-        self.assertEqual(printer[7], "wired")
+    def test_wired_clients_have_no_history(self):
+        """eero's wired list is mostly devices on the house switches attributed to the nearest unit."""
+        before, after = clients(), clients()
+        by_mac(after, "02:00:00:00:03:03")["connected"] = False     # the (wired) printer leaves
+        self.assertEqual(client_events(before, after, T), [])
+        self.assertNotIn("02:00:00:00:03:03", [e[1] for e in client_events([], clients(), T)])
 
     def test_name_prefers_nickname(self):
         ev = client_events([], clients(), T)

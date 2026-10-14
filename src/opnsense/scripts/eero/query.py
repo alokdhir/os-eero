@@ -25,11 +25,15 @@
 
 """Answers for the GUI, from eerod's cache (never calls eero). Run by configd: `eero query <what>`.
 
-  status    the status line: signed in or not, polling or not, last update, network name
+  status          the status line: signed in or not, polling or not, last update, network name
+  units           rows for the Units tab
+  clients [all]   rows for the Clients tab: Wi-Fi clients connected now, or all the network remembers
+  network         the Network tab: settings and health, grouped
 """
 
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -65,10 +69,174 @@ def status(db_path=cache.PATH, sessions=None, pidfile=PIDFILE):
     return out
 
 
+def _cached(kind, db_path=cache.PATH):
+    try:
+        with cache.Store(db_path, readonly=True) as s:
+            return s.get(kind)[1]
+    except Exception:
+        return None
+
+
+def _unit_id(url):
+    return (url or '').rstrip('/').rsplit('/', 1)[-1]
+
+
+BACKHAUL = {'WIRED': 'Wired', 'WIRED_POE': 'Wired (PoE)', 'WIRELESS': 'Wireless'}
+
+
+def units(docs):
+    """One row per eero unit."""
+    rows = []
+    for u in docs or []:
+        if not isinstance(u, dict):
+            continue
+        up = u.get('wireless_upstream_node') or {}
+        backhaul = BACKHAUL.get(u.get('connection_type'), u.get('connection_type') or '')
+        if up:
+            backhaul += ' via %s' % up.get('name', '?') + (' (%s)' % up['primary_mesh_radio'].replace('GHz', ' GHz')
+                                                          if up.get('primary_mesh_radio') else '')
+        rows.append({
+            'id': _unit_id(u.get('url')),
+            'name': u.get('location') or u.get('serial') or '?',
+            'model': u.get('model') or '',
+            'online': u.get('state') == 'ONLINE' and u.get('heartbeat_ok') is not False,
+            'ip': u.get('ip_address') or '',
+            'backhaul': backhaul,
+            'mesh': u.get('mesh_quality_bars'),
+            'clients': u.get('connected_wireless_clients_count'),     # wired counts include switch devices
+            'firmware': (u.get('os_version') or '') + (' (update available)' if u.get('update_available') else ''),
+            'uptime': (u.get('uptime') or {}).get('since_last_reboot_s'),
+            'primary': bool(u.get('is_primary_node')),
+        })
+    return rows
+
+
+def _dbm(text):
+    m = re.match(r'\s*(-?[0-9]+)', str(text or ''))
+    return int(m.group(1)) if m else None
+
+
+def _mbps(conn):
+    bps = ((conn or {}).get('rx_rate_info') or {}).get('rate_bps')
+    if isinstance(bps, (int, float)) and bps > 0:
+        return round(bps / 1e6)
+    m = re.match(r'\s*([0-9.]+)\s*MBit', str((conn or {}).get('rx_bitrate') or ''))
+    return round(float(m.group(1))) if m else None
+
+
+def clients(docs, include_all=False):
+    """One row per Wi-Fi client: by default only those connected now.
+
+    Wired clients are left out: in bridge mode eero attributes every device it sees on the wired network
+    (switches included) to the nearest unit, so its wired list is mostly devices that aren't on an eero."""
+    rows = []
+    for d in docs or []:
+        if not isinstance(d, dict) or not d.get('mac') or not d.get('wireless') \
+                or (not include_all and not d.get('connected')):
+            continue
+        conn = d.get('connectivity') or {}
+        freq = (d.get('interface') or {}).get('frequency')
+        rows.append({
+            'mac': d['mac'].lower(),
+            'name': d.get('nickname') or d.get('display_name') or d.get('hostname') or d['mac'],
+            'named': bool(d.get('nickname')),           # named in the eero app (else eero's guess)
+            # eero shows the MAC vendor when it has no name at all ("Shenzhen Phaten Tech. LTD"): say so
+            'vendor_name': not d.get('nickname') and not d.get('hostname')
+                           and (d.get('display_name') or '') == (d.get('manufacturer') or '').strip(),
+            'unit': (d.get('source') or {}).get('location') or '',
+            'band': ('%s GHz' % freq) if freq else '',
+            'signal': _dbm(conn.get('signal')),
+            'rate': _mbps(conn),
+            'ip': d.get('ip') or '',
+            'type': (d.get('device_type') or '').replace('_', ' '),
+            'maker': d.get('manufacturer') or '',
+            'connected': bool(d.get('connected')),
+            'last_seen': d.get('last_active') or '',
+            'private_mac': bool(d.get('is_private')),
+        })
+    return rows
+
+
+def _yes(v):
+    return None if v is None else ('Yes' if v else 'No')
+
+
+def network(net, thread=None, speedtests=None):
+    """The Network tab: [{'title': ..., 'rows': [[label, value], ...]}, ...]; values are plain text."""
+    if not isinstance(net, dict):
+        return []
+    health = net.get('health') or {}
+    internet = health.get('internet') or {}
+    guest = net.get('guest_network') or {}
+    updates = net.get('updates') or {}
+    speed = net.get('speed') or {}
+    thread = thread if isinstance(thread, dict) else {}
+
+    def speed_text(v):
+        return '%s %s' % (v.get('value'), v.get('units') or 'Mbps') if isinstance(v, dict) and v.get('value') is not None else None
+
+    groups = [
+        ('Network', [
+            ('Name', net.get('name')),
+            ('Status', net.get('status')),
+            ('Internet', internet.get('status')),
+            ('Mode', 'Bridge (the router does DHCP and routing)' if net.get('gateway') == 'bridged'
+             or (net.get('connection') or {}).get('mode') == 'bridged' else (net.get('connection') or {}).get('mode')),
+            ('DHCP', (net.get('dhcp') or {}).get('mode')),
+            ('DNS', (net.get('dns') or {}).get('mode')),
+            ('DNS caching', _yes((net.get('dns') or {}).get('caching'))),
+            ('Public IP (as eero sees it)', (net.get('ip_settings') or {}).get('public_ip')),
+            ('Double NAT', _yes((net.get('ip_settings') or {}).get('double_nat'))),
+            ('UPnP', _yes(net.get('upnp'))),
+        ]),
+        ('Wi-Fi', [
+            ('Band steering', _yes(net.get('band_steering'))),
+            ('WPA3', _yes(net.get('wpa3'))),
+            ('Wireless mode', net.get('wireless_mode')),
+            ('Multi-link (MLO)', net.get('mlo_mode')),
+            ('Guest network', ('%s (on)' % (guest.get('name') or 'unnamed') if guest.get('enabled') else 'Off') if guest else None),
+            ('Thread', ('%s, channel %s' % (thread.get('name'), thread.get('channel')) if thread.get('enabled')
+                        else 'Off') if thread else _yes(net.get('thread'))),
+            ('HomeKit', _yes((net.get('homekit') or {}).get('enabled'))),
+        ]),
+        ('Units and clients', [
+            ('Units online', net.get('online_eeros_count')),
+            ('Units offline', net.get('offline_eeros_count')),
+            ('Clients', (net.get('clients') or {}).get('count')),
+        ]),
+        ('Updates', [
+            ('Firmware', updates.get('target_firmware')),
+            ('Update available', _yes(updates.get('has_update'))),
+            ('Preferred update hour', ('%02d:00' % updates['preferred_update_hour'])
+             if isinstance(updates.get('preferred_update_hour'), int) else None),
+            ('Last update started', updates.get('last_update_started')),
+            ('Automatic updates', net.get('auto_setup_mode')),
+        ]),
+        ('Speed test (eero)', [
+            ('Last test', speed.get('date')),
+            ('Download', speed_text(speed.get('down'))),
+            ('Upload', speed_text(speed.get('up'))),
+        ] + [('%s' % t.get('date'), '%s down / %s up Mbps' % (t.get('down_mbps'), t.get('up_mbps')))
+             for t in (speedtests or [])[1:6] if isinstance(t, dict)]),
+    ]
+    out = []
+    for title, rows in groups:
+        rows = [[label, str(value)] for label, value in rows if value not in (None, '')]
+        if rows:
+            out.append({'title': title, 'rows': rows})
+    return out
+
+
 def main(argv):
     what = argv[1] if len(argv) > 1 else 'status'
     if what == 'status':
         result = status()
+    elif what == 'units':
+        result = units(_cached('units'))
+    elif what == 'clients':
+        result = clients(_cached('clients'), include_all=len(argv) > 2 and argv[2] == 'all')
+    elif what == 'network':
+        result = network(_cached('network'), _cached('thread'), _cached('speedtest'))
     else:
         result = {'error': 'unknown query'}
     print(json.dumps(result))

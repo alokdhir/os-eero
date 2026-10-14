@@ -45,7 +45,7 @@ Everything below is `GET`. Paths are relative to the network URL from `/2.2/acco
 | Endpoint | Size* | Gives us | Poll |
 |---|---|---|---|
 | `/2.2/account` | 1 KB | Network list (`url`, `name`) | start, then hourly |
-| `(network)/eeros` | 37 KB | Units: everything for the Devices tab | 60 s |
+| `(network)/eeros` | 37 KB | Units: everything for the Units tab | 60 s |
 | `(network)/devices` | 240 KB | Clients: everything for the Clients tab | 60 s |
 | `(network)` | 60 KB | Settings, health, updates, last speed test, guest network; also embeds the units list | 5 min |
 | `(network)/speedtest` | 1 KB | Speed test history | hourly |
@@ -73,7 +73,7 @@ that list.
 
 ## Fields
 
-### Units (`/eeros`, our "Devices")
+### Units (`/eeros`, our "Units" tab)
 
 | Field | Example / values | Use |
 |---|---|---|

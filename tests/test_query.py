@@ -26,7 +26,9 @@ import os
 import tempfile
 import unittest
 
-import helpers  # noqa: F401
+import json
+
+from helpers import fixture_doc
 import query
 from lib.session import SessionStore
 from lib.store import Store
@@ -67,6 +69,68 @@ class TestStatus(unittest.TestCase):
         with open(self.pidfile, "w") as f:
             f.write("999999")
         self.assertEqual(self.status()["status"], "stopped")
+
+
+
+class TestTabs(unittest.TestCase):
+    def test_units(self):
+        rows = query.units(fixture_doc("eeros")["data"])
+        self.assertEqual([r["name"] for r in rows], ["Hallway", "Garage", "Patio"])
+        hall, garage, patio = rows
+        self.assertEqual((hall["backhaul"], hall["primary"], hall["online"]), ("Wired", True, True))
+        self.assertEqual(garage["backhaul"], "Wired (PoE)")
+        self.assertEqual(patio["backhaul"], "Wireless via Hallway (5 GHz)")
+        self.assertEqual((patio["mesh"], patio["clients"], patio["uptime"]), (4, 1, 259200))
+        self.assertEqual(hall["clients"], 2)                                       # Wi-Fi clients only
+        self.assertEqual(hall["id"], "2000001")
+
+    def test_offline_unit(self):
+        docs = fixture_doc("eeros")["data"]
+        docs[1]["state"] = "OFFLINE"
+        self.assertFalse(query.units(docs)[1]["online"])
+
+    def test_clients_connected_and_all(self):
+        docs = fixture_doc("devices")["data"]
+        now = query.clients(docs)
+        self.assertNotIn("02:00:00:00:03:04", [r["mac"] for r in now])            # the tablet is away
+        self.assertEqual(len(query.clients(docs, include_all=True)), 4)             # not the wired printer
+        laptop = next(r for r in now if r["mac"] == "02:00:00:00:03:01")
+        self.assertEqual((laptop["name"], laptop["unit"], laptop["band"], laptop["signal"], laptop["rate"]),
+                         ("Work laptop", "Hallway", "5 GHz", -52, 865))
+        self.assertNotIn("02:00:00:00:03:03", [r["mac"] for r in now])            # wired: left out
+        self.assertTrue(laptop["named"])
+        self.assertTrue(next(r for r in now if r["mac"] == "02:00:00:00:03:02")["private_mac"])
+
+    def test_name_that_is_only_the_vendor(self):
+        docs = fixture_doc("devices")["data"]
+        fan = docs[1]
+        fan.update(nickname=None, hostname=None, display_name="Example Wi-Fi Module Co.", manufacturer="Example Wi-Fi Module Co.")
+        rows = {r["mac"]: r for r in query.clients(docs)}
+        self.assertTrue(rows[fan["mac"]]["vendor_name"])
+        self.assertFalse(rows["02:00:00:00:03:01"]["vendor_name"])     # nicknamed
+        self.assertFalse(rows["02:00:00:00:03:05"]["vendor_name"])     # has a host name
+
+    def test_names_passed_through_raw(self):
+        """Escaping is the page's job (every text column has an escaping formatter); the data stays exact."""
+        rows = query.clients(fixture_doc("devices")["data"])
+        self.assertIn('tv "den" <b>', [r["name"] for r in rows])
+
+    def test_network(self):
+        groups = query.network(fixture_doc("network")["data"], fixture_doc("thread")["data"], fixture_doc("speedtest")["data"])
+        flat = {label: value for g in groups for label, value in g["rows"]}
+        self.assertTrue(flat["Mode"].startswith("Bridge"))
+        self.assertEqual(flat["Guest network"], "Example Guest (on)")
+        self.assertEqual(flat["Thread"], "Off")
+        self.assertEqual(flat["Preferred update hour"], "03:00")
+        self.assertEqual(flat["Download"], "940.5 Mbps")
+        self.assertNotIn("SECRET", json.dumps(groups))
+        self.assertEqual(query.network(None), [])
+
+    def test_network_guest_without_name(self):
+        net = fixture_doc("network")["data"]
+        net["guest_network"].pop("name")
+        flat = {label: value for g in query.network(net) for label, value in g["rows"]}
+        self.assertEqual(flat["Guest network"], "unnamed (on)")
 
 
 if __name__ == "__main__":

@@ -35,13 +35,14 @@ def client_name(d):
 
 
 def _where(clients):
-    """mac -> (unit url, unit location, band, name) for connected clients."""
+    """mac -> (unit url, unit location, band, name) for connected Wi-Fi clients (eero's wired list is mostly
+    devices on the house switches, attributed to the nearest unit: no history for those)."""
     out = {}
     for d in clients or []:
-        if not isinstance(d, dict) or not d.get('connected') or not d.get('mac'):
+        if not isinstance(d, dict) or not d.get('connected') or not d.get('mac') or not d.get('wireless'):
             continue
         src = d.get('source') or {}
-        band = (d.get('interface') or {}).get('frequency') if d.get('wireless') else 'wired'
+        band = (d.get('interface') or {}).get('frequency')
         out[d['mac'].lower()] = (src.get('url'), src.get('location'), band, client_name(d))
     return out
 
