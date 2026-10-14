@@ -76,7 +76,8 @@ POSSIBILITY OF SUCH DAMAGE.
             client: function (column, row) {
                 /* icon: a Font Awesome class from Loupe (when installed); only fa-* class names are used */
                 const icon = /^[a-z0-9 -]+$/.test(row.icon || '') ? '<i class="' + row.icon + ' fa-fw text-muted"></i> ' : '<i class="fa fa-fw"></i> ';
-                return icon + '<span title="' + esc(row.mac) + '">' + esc(row.name) + '</span>' + (row.private_mac ? ' <i class="fa fa-user-secret text-muted" title="{{ lang._('Private (randomised) MAC address') }}"></i>' : '');
+                const tip = row.mac + (row.private_mac ? ' {{ lang._('(private address)') }}' : '');
+                return icon + '<span title="' + esc(tip) + '">' + esc(row.name) + '</span>';
             },
             bars: function (column, row) {
                 /* eero's 0-5 mesh quality as a signal meter: five rising bars, filled ones coloured by level */
