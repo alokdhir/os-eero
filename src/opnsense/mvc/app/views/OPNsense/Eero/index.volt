@@ -351,7 +351,7 @@ POSSIBILITY OF SUCH DAMAGE.
     </div>
     <div id="clients" class="tab-pane fade in">
         <div style="padding: 10px 10px 0">
-            <div class="btn-group btn-group-xs" id="clients_show">
+            <div class="btn-group" id="clients_show">
                 <button type="button" class="btn btn-default active" data-show="">{{ lang._('Connected now') }}</button>
                 <button type="button" class="btn btn-default" data-show="all">{{ lang._('All known') }}</button>
             </div>
