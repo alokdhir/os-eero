@@ -3,8 +3,8 @@ eero unit (online, model, backhaul, mesh quality, clients, uptime) with a page
 for its clients, radios, ports and history; every Wi-Fi client (which unit it
 is on, band and channel, signal, connection quality) with its moves between
 units; and the network's settings and health, including which unit eero
-treats as primary. Units can be renamed from the GUI; nothing else is changed
-at eero.
+treats as primary, with a dashboard widget. Units can be renamed and rebooted
+from the GUI; nothing else is changed at eero.
 
 A small service polls eero's cloud API (the one the eero app uses) at a
 gentle, rate-limited pace and keeps the results in SQLite; the GUI only
@@ -16,6 +16,14 @@ makers.
 
 Plugin Changelog
 ================
+
+1.1
+
+* Dashboard widget: status, units online, Wi-Fi clients, and each unit with
+  its clients (primary first), linking to its page
+* Reboot a unit (its page) or all units (Overview), each behind a confirm that
+  says what happens; a privilege of its own, "eero: reboot units"
+* Renames and reboots are logged to the system log with the GUI user who asked
 
 1.0
 

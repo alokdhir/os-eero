@@ -344,9 +344,13 @@ POSSIBILITY OF SUCH DAMAGE.
                 $d.append($('<h3 id="unit_title" style="margin-top: 0"/>').html(unitLabel(u, esc(u.name)) + renameButton(u)),
                     $('<p class="text-muted"/>').text([plain(u.model), plain(u.ip)].filter(Boolean).join(' · ')));
                 if (canReboot) {
-                    $d.append($('<p/>').append($('<button type="button" class="btn btn-default btn-xs eero-reboot"/>')
-                        .attr({'data-id': plain(u.id), 'data-name': plain(u.name)})
-                        .html('<i class="fa fa-power-off"></i> {{ lang._('Reboot this unit') }}')));
+                    /* an offline unit can't be told to reboot (eero answers error.eero.offline) */
+                    /* the hint sits on a wrapper: a disabled button shows no tooltip */
+                    $d.append($('<p/>').append($('<span style="display: inline-block"/>')
+                        .attr('title', u.online ? '' : '{{ lang._('Offline: eero cannot reach it to reboot it') }}')
+                        .append($('<button type="button" class="btn btn-default btn-xs eero-reboot"/>')
+                            .attr({'data-id': plain(u.id), 'data-name': plain(u.name)}).prop('disabled', !u.online)
+                            .html('<i class="fa fa-power-off"></i> {{ lang._('Reboot this unit') }}'))));
                 }
 
                 const reboot = Date.parse(plain(u.last_reboot));

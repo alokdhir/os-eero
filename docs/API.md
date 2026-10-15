@@ -61,13 +61,15 @@ those now), `/profiles` (150 KB, parental controls), `/diagnostics` (only `{stat
 
 ## What we change
 
-The only change the plugin makes (decided 2026-10-15):
+The only changes the plugin makes (decided 2026-10-15): renaming and rebooting units.
 
 | Call | Body | Use |
 |---|---|---|
 | `PUT /2.2/eeros/<id>` (the unit's `url`) | form `location=<name>` | Rename a unit (the name the app shows). From eero-api's `set_location`. Verified 2026-10-15: the next GET returned the new name; eero accepts a name another unit already has |
+| `POST /2.2/eeros/<id>/reboot` (the unit's `resources.reboot`) | none | Reboot one unit. Verified 2026-10-15: accepted at once; the next read had `state: REBOOTING` (still `heartbeat_ok: true`, then false), the unit's link dropped twice in the first 30 s, and it was `ONLINE` with a new `last_reboot` about 3 min later |
+| `POST <network>/reboot` | none | Reboot every unit (~3 min without Wi-Fi). Not tried from the plugin |
 
-Each unit also lists `resources.reboot` (`/2.2/eeros/<id>/reboot`), so a single unit can be rebooted as well as the whole network (`POST <network>/reboot`). Not used yet (EERO-8).
+A unit that has rebooted can come back as primary: after a reboot test on 2026-10-15, Basement (the unit on the router's own port) was primary.
 
 ## Secrets in responses: never cache, log or show
 

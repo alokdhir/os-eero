@@ -8,14 +8,18 @@ which unit it's on, and the network's settings.
 - **Units**: each eero unit: online or not, model, IP, wired or wireless backhaul (and which
   unit it hangs off), mesh quality, clients and uptime. Each unit has its own page: the clients on
   it now, its radios (channel and width), its ports and what is seen on them, firmware,
-  power and serial number, and when it went offline or came back. Rename a unit with the pencil
-  next to its name.
+  power and serial number, and when it went offline, came back or became primary. Rename a unit
+  with the pencil next to its name, or reboot it from its page.
 - **Clients**: every Wi-Fi client: name, which unit it's on, band and channel, signal, connection
   quality (eero's 0-5 bars), address, and when it was last seen. Each client has its own page with
   the time it spent on each unit and its moves between them; *Recent moves* lists the latest moves
   across all clients.
-- **Overview**: the eero network's settings and health, and which unit is primary: bridge or router mode, DHCP and DNS, band
-  steering, WPA3, guest network, updates, last speed test.
+- **Overview**: the eero network's settings and health, and which unit is primary: bridge or
+  router mode, DHCP and DNS, band steering, WPA3, guest network, updates, last speed test. Reboot
+  all units from here.
+- **Dashboard widget**: status, units online, Wi-Fi clients, and each unit with its clients.
+
+Renames and reboots each have a privilege of their own, and are logged with the user who asked.
 
 ## Better with Loupe
 
