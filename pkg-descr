@@ -1,16 +1,40 @@
 Shows what an eero mesh Wi-Fi network is doing, from the OPNsense GUI: each
-eero unit (online, model, firmware, backhaul, clients), every client (which
-unit it is on, band, signal, rate) and the network's settings, read-only.
+eero unit (online, model, backhaul, mesh quality, clients, uptime) with a page
+for its clients, radios, ports and history; every Wi-Fi client (which unit it
+is on, band and channel, signal, connection quality) with its moves between
+units; and the network's settings and health, including which unit eero
+treats as primary. Units can be renamed from the GUI; nothing else is changed
+at eero.
 
 A small service polls eero's cloud API (the one the eero app uses) at a
 gentle, rate-limited pace and keeps the results in SQLite; the GUI only
-reads that copy. Log in once from the GUI with the code eero sends you.
+reads that copy. It records client moves and unit status changes, kept for
+7 days unless changed. Log in once from the GUI with the code eero sends you.
 
-With os-loupe installed, clients also show Loupe's device type and icon,
-and its name for devices eero only knows by their Wi-Fi chip's maker.
+With os-loupe installed, clients show Loupe's names, device types, icons and
+makers.
 
 Plugin Changelog
 ================
+
+1.0
+
+* Unit page: the clients on it now, its radios (channel, width, clients,
+  transmit power), ports (link speed, uplink, LLDP neighbours), firmware,
+  power source and serial, and its status changes (offline, back online,
+  became primary)
+* Rename a unit from the GUI (the pencil by its name); a privilege of its own,
+  "eero: rename units"
+* Client page: time on each unit and the client's moves; Recent moves lists
+  the latest moves across all clients
+* Clients show band and channel and eero's connection quality instead of the
+  link rate
+* Overview tab (was Network), with the primary unit
+* Keep history setting: days of moves and status changes to keep (default 7)
+* With os-loupe: Loupe's names (after names set in the eero app), types, icons
+  and makers
+* Host names that are raw bytes (some devices send them over DHCP) count as no
+  name
 
 0.1
 

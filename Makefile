@@ -1,5 +1,5 @@
 PLUGIN_NAME=		eero
-PLUGIN_VERSION=		0.1
+PLUGIN_VERSION=		1.0
 PLUGIN_DEPENDS=		py${PLUGIN_PYTHON}-requests py${PLUGIN_PYTHON}-sqlite3
 PLUGIN_COMMENT=		eero mesh Wi-Fi status: units, clients and network settings
 PLUGIN_MAINTAINER=	alok@dhir.net
