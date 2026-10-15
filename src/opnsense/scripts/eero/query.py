@@ -478,18 +478,18 @@ def unit(uid, db_path=cache.PATH, now=None, keep_hours=None):
 
 
 def widget(db_path=cache.PATH, sessions=None, pidfile=PIDFILE):
-    """The dashboard widget: the status line's facts, and each unit with its Wi-Fi clients."""
+    """The dashboard widget: the status line's facts, units online of all units, Wi-Fi clients."""
     st = status(db_path, sessions, pidfile)
     try:
         with cache.Store(db_path, readonly=True) as s:
             udocs, cdocs = s.get('units')[1], s.get('clients')[1]
     except Exception:
         udocs, cdocs = None, None
-    rows = sorted(units(udocs), key=lambda r: (not r['primary'], r['name'].lower()))
+    rows = units(udocs)
     return {
         'running': st['running'], 'status': st['status'], 'message': st.get('message'), 'network': st.get('network'),
         'last_ok': st.get('last_ok'), 'next_try': st.get('next_try'),
-        'units': [{k: r[k] for k in ('id', 'name', 'online', 'primary', 'clients')} for r in rows],
+        'units': len(rows), 'online': sum(1 for r in rows if r['online']),
         'clients': len(clients(cdocs)),
     }
 

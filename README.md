@@ -17,7 +17,7 @@ which unit it's on, and the network's settings.
 - **Overview**: the eero network's settings and health, and which unit is primary: bridge or
   router mode, DHCP and DNS, band steering, WPA3, guest network, updates, last speed test. Reboot
   all units from here.
-- **Dashboard widget**: status, units online, Wi-Fi clients, and each unit with its clients.
+- **Dashboard widget**: status, units online and Wi-Fi clients.
 
 Looking is one privilege (*eero*). Settings and the eero account (*eero: settings and account*), renaming
 (*eero: rename units*) and rebooting (*eero: reboot units*) each have their own, under System → Access →

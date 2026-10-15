@@ -19,8 +19,7 @@ Plugin Changelog
 
 1.1
 
-* Dashboard widget: status, units online, Wi-Fi clients, and each unit with
-  its clients (primary first), linking to its page
+* Dashboard widget: status, units online and Wi-Fi clients
 * Reboot a unit (its page) or all units (Overview), each behind a confirm that
   says what happens; a privilege of its own, "eero: reboot units"
 * Renames and reboots are logged to the system log with the GUI user who asked

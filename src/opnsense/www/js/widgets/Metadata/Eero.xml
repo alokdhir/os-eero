@@ -17,8 +17,6 @@
             <unitsonline>units online</unitsonline>
             <of>of</of>
             <clients>Wi-Fi clients</clients>
-            <primary>primary</primary>
-            <offline>Offline</offline>
             <nodata>Nothing from eero yet.</nodata>
         </translations>
     </eero>

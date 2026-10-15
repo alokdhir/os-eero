@@ -31,7 +31,7 @@ export default class Eero extends BaseWidget {
     }
 
     getGridOptions() {
-        return {sizeToContent: 650, w: 2, minW: 2};
+        return {sizeToContent: 300, w: 2, minW: 2};
     }
 
     getMarkup() {
@@ -40,15 +40,12 @@ export default class Eero extends BaseWidget {
                 <style>
                     .eero-widget, .eero-widget * { text-align: left; }
                     .eero-widget .ew-status { margin-top: 5px; font-size: 12px; }
-                    .eero-widget .ew-sum { margin: 4px 0 6px; font-size: 12px; }
-                    .eero-widget .ew-row { display: flex; gap: 8px; padding: 3px 0; border-top: 1px solid rgba(128,128,128,0.2); font-size: 12px; }
-                    .eero-widget .ew-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                    .eero-widget .ew-val, .eero-widget .ew-val * { white-space: nowrap; text-align: right; }
-                    .eero-widget .ew-muted { color: #888; }
+                    .eero-widget .ew-counts { display: flex; gap: 24px; margin: 8px 0 2px; }
+                    .eero-widget .ew-num { font-size: 22px; line-height: 1.1; }
+                    .eero-widget .ew-label { color: #888; font-size: 11px; }
                 </style>
                 <div class="ew-status" id="eero-w-status"></div>
-                <div class="ew-sum" id="eero-w-sum"></div>
-                <div id="eero-w-units"></div>
+                <div class="ew-counts" id="eero-w-counts"></div>
             </div>
         `);
     }
@@ -87,23 +84,19 @@ export default class Eero extends BaseWidget {
             return;
         }
         $('#eero-w-status').html(this.status(d));          // its "updated … ago" changes every tick
-        if (!this.dataChanged('eero', {units: d.units, clients: d.clients})) {
+        if (!this.dataChanged('eero', {units: d.units, online: d.online, clients: d.clients})) {
             return;
         }
         const t = this.translations;
-        const units = d.units || [];
-        if (!units.length) {
-            $('#eero-w-sum').text(t.nodata);
-            $('#eero-w-units').empty();
+        if (!d.units) {
+            $('#eero-w-counts').text(t.nodata);
             return;
         }
-        const online = units.filter(u => u.online).length;
-        $('#eero-w-sum').html(`<strong${online < units.length ? ' class="text-danger"' : ''}>${online} ${t.of} ${units.length}</strong> `
-            + `${t.unitsonline} · <strong>${Eero.esc(d.clients)}</strong> ${t.clients}`);
-        $('#eero-w-units').html(units.map(u => `<div class="ew-row"><div class="ew-name">`
-            + `<a href="/ui/eero/#unit=${encodeURIComponent(Eero.esc(u.id))}">${Eero.esc(u.name)}</a>`
-            + (u.primary ? ` <span class="ew-muted">(${t.primary})</span>` : '')
-            + (u.online ? '' : ` <span class="label label-danger">${t.offline}</span>`)
-            + `</div><div class="ew-val">${u.clients == null ? '' : Eero.esc(u.clients)}</div></div>`).join(''));
+        const count = (num, label, cls) => `<div><div class="ew-num${cls ? ' ' + cls : ''}">${num}</div>`
+            + `<div class="ew-label">${label}</div></div>`;
+        $('#eero-w-counts').html(
+            count(`${Eero.esc(d.online)} <span class="ew-label">${t.of} ${Eero.esc(d.units)}</span>`, t.unitsonline,
+                  d.online < d.units ? 'text-danger' : '')
+            + count(Eero.esc(d.clients), t.clients));
     }
 }

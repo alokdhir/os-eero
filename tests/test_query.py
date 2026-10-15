@@ -274,8 +274,7 @@ class TestHistory(unittest.TestCase):
                 s.put("units", fixture_doc("eeros")["data"], 5000)
                 s.put("clients", fixture_doc("devices")["data"], 5000)
             w = query.widget(db_path=db, sessions=SessionStore(os.path.join(d, "s")), pidfile=os.path.join(d, "pid"))
-            self.assertEqual([u["name"] for u in w["units"]], ["Hallway", "Garage", "Patio"])   # primary first
-            self.assertEqual((w["units"][0]["primary"], w["clients"], w["status"]), (True, 3, "stopped"))
+            self.assertEqual((w["units"], w["online"], w["clients"], w["status"]), (3, 3, 3, "stopped"))
 
     def test_speed(self):
         self.assertEqual([query._speed(s) for s in ("P1000", "P2500", "P100", "P0", None, "x")],
