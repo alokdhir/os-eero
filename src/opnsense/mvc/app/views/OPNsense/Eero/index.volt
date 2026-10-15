@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
             }
         });
 
-        /* tabs <-> address: #units, #clients, #network, #settings, the Units tab's #unit=<id>, and the Clients
+        /* tabs <-> address: #units, #clients, #overview, #settings, the Units tab's #unit=<id>, and the Clients
            tab's views #moves and #client=<mac>. Apply only belongs to Settings. */
         let clientView = {view: 'list', mac: null};
         let unitView = null;                        /* a unit's id while its page is shown */
@@ -63,6 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
             }
             if (hash === '#units') {
                 unitView = null;
+            }
+            if (hash === '#network') {
+                return '#overview';                 /* the tab's old name */
             }
             if (hash.startsWith('#client=')) {
                 clientView = {view: 'client', mac: decodeURIComponent(hash.slice(8)).toLowerCase()};
@@ -412,7 +415,7 @@ POSSIBILITY OF SUCH DAMAGE.
         function load(tab) {
             if (tab === '#units') unitView ? showUnit(unitView) : showUnits();
             else if (tab === '#clients') ({list: showClients, moves: showMoves, client: () => showClient(clientView.mac)})[clientView.view]();
-            else if (tab === '#network') showNetwork();
+            else if (tab === '#overview') showNetwork();
         }
         $('#maintabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) { load(e.target.hash); });
         show(window.location.hash);
@@ -581,7 +584,7 @@ POSSIBILITY OF SUCH DAMAGE.
 <ul class="nav nav-tabs" data-tabs="tabs" id="maintabs">
     <li><a data-toggle="tab" href="#units">{{ lang._('Units') }}</a></li>
     <li><a data-toggle="tab" href="#clients">{{ lang._('Clients') }}</a></li>
-    <li><a data-toggle="tab" href="#network">{{ lang._('Network') }}</a></li>
+    <li><a data-toggle="tab" href="#overview">{{ lang._('Overview') }}</a></li>
     <li><a data-toggle="tab" href="#settings">{{ lang._('Settings') }}</a></li>
 </ul>
 <div class="tab-content content-box">
@@ -665,7 +668,7 @@ POSSIBILITY OF SUCH DAMAGE.
             <div id="client_detail_body">{{ lang._('Loading…') }}</div>
         </div>
     </div>
-    <div id="network" class="tab-pane fade in">
+    <div id="overview" class="tab-pane fade in">
         <div id="network_body" style="padding: 10px">{{ lang._('Loading…') }}</div>
     </div>
     <div id="settings" class="tab-pane fade in">

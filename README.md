@@ -14,7 +14,7 @@ which unit it's on, and the network's settings.
   quality (eero's 0-5 bars), address, and when it was last seen. Each client has its own page with
   the time it spent on each unit and its moves between them; *Recent moves* lists the latest moves
   across all clients.
-- **Network**: the eero network's settings and health: bridge or router mode, DHCP and DNS, band
+- **Overview**: the eero network's settings and health, and which unit is primary: bridge or router mode, DHCP and DNS, band
   steering, WPA3, guest network, updates, last speed test.
 
 ## Better with Loupe

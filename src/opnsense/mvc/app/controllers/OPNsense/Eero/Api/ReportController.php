@@ -32,7 +32,7 @@ use OPNsense\Base\ApiControllerBase;
 use OPNsense\Core\Backend;
 
 /**
- * The Devices, Clients and Network tabs, from eerod's cache (configd `eero query`; never calls eero).
+ * The Units, Clients and Overview tabs, from eerod's cache (configd `eero query`; never calls eero).
  */
 class ReportController extends ApiControllerBase
 {

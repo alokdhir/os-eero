@@ -28,7 +28,7 @@
   status          the status line: signed in or not, polling or not, last update, network name
   units           rows for the Units tab
   clients [all]   rows for the Clients tab: Wi-Fi clients connected now, or all the network remembers
-  network         the Network tab: settings and health, grouped
+  network         the Overview tab: the network's settings and health, grouped
   client <mac> <hours>   one client's page: now, time on each eero, its moves
   moves <hours>          recent moves (roams and band changes) across all clients
 """
@@ -190,7 +190,7 @@ def _yes(v):
 
 
 def network(net, thread=None, speedtests=None, units=None):
-    """The Network tab: [{'title': ..., 'rows': [[label, value], ...]}, ...]; values are plain text."""
+    """The Overview tab: [{'title': ..., 'rows': [[label, value], ...]}, ...]; values are plain text."""
     if not isinstance(net, dict):
         return []
     health = net.get('health') or {}
