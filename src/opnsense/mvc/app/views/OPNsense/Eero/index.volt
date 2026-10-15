@@ -289,7 +289,7 @@ POSSIBILITY OF SUCH DAMAGE.
                 });
                 const since = page.since > Date.now() / 1000 - page.hours * 3600 + 120
                     ? ' ({{ lang._('history starts') }} ' + when(page.since) + ')' : '';
-                $d.append($('<h4/>').text('{{ lang._('Time on each eero') }}' + since), $bar, $legend);
+                $d.append($('<h4/>').text('{{ lang._('Time on each unit') }}' + since), $bar, $legend);
 
                 const $t = $('<tbody/>');
                 page.events.forEach(function (e) {
@@ -337,7 +337,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     ['{{ lang._('MAC address') }}', esc(u.mac) || dash]
                 ]).find('td:first-child').css('width', '30%').end());
 
-                $d.append($('<h4/>').text('{{ lang._('Clients on this eero now') }} (' + page.clients.length + ')'));
+                $d.append($('<h4/>').text('{{ lang._('Clients on this unit now') }} (' + page.clients.length + ')'));
                 $d.append(page.clients.length
                     ? table(['{{ lang._('Name') }}', '{{ lang._('Band') }}', '{{ lang._('Signal') }}', '{{ lang._('Quality') }}', '{{ lang._('Type') }}'],
                         page.clients.map(c => [formatters.client(null, c), formatters.text({id: 'band'}, c), formatters.signal(null, c),
@@ -346,7 +346,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
                 if (page.radios.length) {
                     $d.append($('<h4/>').text('{{ lang._('Radios') }}'),
-                        $('<p class="text-muted"/>').text('{{ lang._('Busy: how much of the time the channel is in use, by this eero, its clients and any other network on the same channel.') }}'),
+                        $('<p class="text-muted"/>').text('{{ lang._('Busy: how much of the time the channel is in use, by this unit, its clients and any other network on the same channel.') }}'),
                         table(['{{ lang._('Band') }}', '{{ lang._('Channel') }}', '{{ lang._('Width') }}', '{{ lang._('Busy') }}', '{{ lang._('Clients') }}', '{{ lang._('Transmit power') }}'],
                             page.radios.map(r => [esc(r.band), r.channel != null ? esc(r.channel) : dash, r.width ? esc(r.width) + ' MHz' : dash,
                                 r.busy != null ? esc(r.busy) + ' %' : dash, r.clients != null ? esc(r.clients) : dash,
@@ -371,7 +371,7 @@ POSSIBILITY OF SUCH DAMAGE.
                         ? '<span class="label label-danger">{{ lang._('Went offline') }}</span>' : '<span class="label label-success">{{ lang._('Back online') }}</span>']))
                         .find('td:first-child').css('width', '9em').end()
                     : $('<p class="text-muted"/>').text('{{ lang._('Online throughout this period.') }}'));
-                $d.append($('<h4/>').text('{{ lang._('Client moves on and off this eero') }}'), page.moves.length
+                $d.append($('<h4/>').text('{{ lang._('Client moves on and off this unit') }}'), page.moves.length
                     ? table(null, page.moves.map(e => [esc(when(e.ts)), formatters.client(null, e), moveText(e)]))
                         .find('td:first-child').css('width', '9em').end()
                     : $('<p class="text-muted"/>').text('{{ lang._('No moves in this period.') }}'));
@@ -602,7 +602,7 @@ POSSIBILITY OF SUCH DAMAGE.
             <thead><tr>
                 <th data-column-id="mac" data-identifier="true" data-visible="false" data-formatter="text">{{ lang._('MAC address') }}</th>
                 <th data-column-id="name" data-formatter="client">{{ lang._('Name') }}</th>
-                <th data-column-id="unit" data-formatter="text">{{ lang._('On eero') }}</th>
+                <th data-column-id="unit" data-formatter="text">{{ lang._('Unit') }}</th>
                 <th data-column-id="band" data-formatter="text" data-min-width="90" data-max-width="130">{{ lang._('Band') }}</th>
                 <th data-column-id="signal" data-formatter="signal" data-min-width="80" data-max-width="110">{{ lang._('Signal') }}</th>
                 <th data-column-id="quality" data-formatter="bars" data-min-width="60" data-max-width="80">{{ lang._('Quality') }}</th>
