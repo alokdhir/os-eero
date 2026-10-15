@@ -24,6 +24,18 @@ Plugin Changelog
 * Reboot a unit (its page) or all units (Overview), each behind a confirm that
   says what happens; a privilege of its own, "eero: reboot units"
 * Renames and reboots are logged to the system log with the GUI user who asked
+* Settings and the eero account need their own privilege, "eero: settings and
+  account"; the "eero" privilege is now for looking only
+* Client moves are recorded with the units' ids, so renaming a unit, or two
+  units with the same name, no longer mixes up history; moves show each unit's
+  current name (moves recorded before 1.1 keep the names they had)
+* Recent moves and unit pages show clients' current names; Recent moves no
+  longer misses roams on a busy network
+* The status line keeps the reason eero ended a session until you sign in
+  again; an unexpected answer from eero shows as an error and backs off
+* Signing out also clears data a request in flight would have brought back;
+  signing in to another eero network starts its history afresh
+* Apply stops spinning when a setting is rejected; 6 GHz channel 2 shown right
 
 1.0
 

@@ -19,7 +19,9 @@ which unit it's on, and the network's settings.
   all units from here.
 - **Dashboard widget**: status, units online, Wi-Fi clients, and each unit with its clients.
 
-Renames and reboots each have a privilege of their own, and are logged with the user who asked.
+Looking is one privilege (*eero*). Settings and the eero account (*eero: settings and account*), renaming
+(*eero: rename units*) and rebooting (*eero: reboot units*) each have their own, under System → Access →
+Users or Groups. Renames and reboots are logged with the user who asked.
 
 ## Better with Loupe
 

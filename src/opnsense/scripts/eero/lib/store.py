@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS snapshots (kind TEXT PRIMARY KEY, fetched_at INTEGER 
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS client_events (
     ts INTEGER NOT NULL, mac TEXT NOT NULL, name TEXT, event TEXT NOT NULL,
-    from_unit TEXT, to_unit TEXT, band_from TEXT, band_to TEXT);
+    from_unit TEXT, to_unit TEXT, band_from TEXT, band_to TEXT, from_id TEXT, to_id TEXT);
 CREATE INDEX IF NOT EXISTS client_events_ts ON client_events (ts);
 CREATE INDEX IF NOT EXISTS client_events_mac ON client_events (mac, ts);
 CREATE TABLE IF NOT EXISTS unit_events (ts INTEGER NOT NULL, unit TEXT NOT NULL, location TEXT, event TEXT NOT NULL);
@@ -59,6 +59,15 @@ class Store:
             os.chmod(path, 0o600)
             self.db.execute('PRAGMA journal_mode=WAL')
             self.db.executescript(SCHEMA)
+            self._add_unit_ids()
+
+    def _add_unit_ids(self):
+        """Tables from before moves kept unit ids get the two columns; their rows keep only the unit names."""
+        cols = {r[1] for r in self.db.execute('PRAGMA table_info(client_events)')}
+        if 'from_id' not in cols:
+            with self.db:
+                self.db.execute('ALTER TABLE client_events ADD COLUMN from_id TEXT')
+                self.db.execute('ALTER TABLE client_events ADD COLUMN to_id TEXT')
 
     def close(self):
         self.db.close()
@@ -108,9 +117,11 @@ class Store:
     # --- history
 
     def add_client_events(self, rows):
+        """Rows as history.client_events makes them (10 values; 8 without the unit ids)."""
         if rows:
             with self.db:
-                self.db.executemany('INSERT INTO client_events VALUES (?, ?, ?, ?, ?, ?, ?, ?)', rows)
+                self.db.executemany('INSERT INTO client_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                    [tuple(r) + (None,) * (10 - len(r)) for r in rows])
 
     def add_unit_events(self, rows):
         if rows:
@@ -119,7 +130,7 @@ class Store:
 
     def client_events(self, since, mac=None, limit=1000, events=None):
         """Newest first. `events`: only these kinds (e.g. ('roamed', 'band')), chosen before the limit applies."""
-        cols = ('ts', 'mac', 'name', 'event', 'from_unit', 'to_unit', 'band_from', 'band_to')
+        cols = ('ts', 'mac', 'name', 'event', 'from_unit', 'to_unit', 'band_from', 'band_to', 'from_id', 'to_id')
         sql = 'SELECT %s FROM client_events WHERE ts >= ?' % ', '.join(cols)
         args = [int(since)]
         if mac:

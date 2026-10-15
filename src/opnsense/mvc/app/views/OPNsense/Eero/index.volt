@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 <script>
     $(document).ready(function () {
+{% if canSettings %}
+        /* Settings (and its Apply) only for users with the "eero: settings and account" privilege */
         mapDataToFormUI({'frm_settings': '/api/eero/settings/get'}).done(function () {
             updateServiceControlUI('eero');
         });
@@ -53,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
                 updateServiceControlUI('eero');
             }
         });
+{% endif %}
 
         /* tabs <-> address: #units, #clients, #overview, #settings, the Units tab's #unit=<id>, and the Clients
            tab's views #moves and #client=<mac>. Apply only belongs to Settings. */
@@ -108,6 +111,7 @@ POSSIBILITY OF SUCH DAMAGE.
         const dash = '<span class="text-muted">–</span>';
         const canRename = {{ canRename ? 'true' : 'false' }};
         const canReboot = {{ canReboot ? 'true' : 'false' }};
+        const canSettings = {{ canSettings ? 'true' : 'false' }};
         function renameButton(row) {
             return canRename ? '<i class="fa fa-pencil eero-edit" title="{{ lang._('Rename this unit') }}" data-id="' + esc(row.id)
                 + '" data-name="' + esc(row.name) + '"></i>' : '';
@@ -458,7 +462,8 @@ POSSIBILITY OF SUCH DAMAGE.
             return s < 90 ? s + ' s' : Math.round(s / 60) + ' min';
         }
 
-        const SIGNIN = '<a href="#" class="eero-signin">{{ lang._('Sign in') }}</a>';
+        /* only users who may sign in get the link */
+        const SIGNIN = canSettings ? '<a href="#" class="eero-signin">{{ lang._('Sign in') }}</a>' : '';
         function statusLine(st) {
             const net = st.network ? ' <strong>' + esc(st.network) + '</strong>' : '';
             if (!st.running) {
@@ -629,7 +634,9 @@ POSSIBILITY OF SUCH DAMAGE.
     <li><a data-toggle="tab" href="#units">{{ lang._('Units') }}</a></li>
     <li><a data-toggle="tab" href="#clients">{{ lang._('Clients') }}</a></li>
     <li><a data-toggle="tab" href="#overview">{{ lang._('Overview') }}</a></li>
+{% if canSettings %}
     <li><a data-toggle="tab" href="#settings">{{ lang._('Settings') }}</a></li>
+{% endif %}
 </ul>
 <div class="tab-content content-box">
     <div id="units" class="tab-pane fade in">
@@ -710,6 +717,7 @@ POSSIBILITY OF SUCH DAMAGE.
     <div id="overview" class="tab-pane fade in">
         <div id="network_body" style="padding: 10px">{{ lang._('Loading…') }}</div>
     </div>
+{% if canSettings %}
     <div id="settings" class="tab-pane fade in">
         {{ partial('layout_partials/base_form', ['fields': formSettings, 'id': 'frm_settings']) }}
         <div class="table-responsive">
@@ -731,8 +739,11 @@ POSSIBILITY OF SUCH DAMAGE.
             </table>
         </div>
     </div>
+{% endif %}
 </div>
 
+{% if canSettings %}
 <div class="eero-apply" style="display: none">
     {{ partial('layout_partials/base_apply_button', {'data_endpoint': '/api/eero/service/reconfigure', 'data_service_widget': 'eero', 'data_error_title': 'Error applying eero settings'}) }}
 </div>
+{% endif %}

@@ -276,6 +276,31 @@ def hours_arg(text):
     return min(max(hours, 1), max_hours())
 
 
+def _unit_names(udocs):
+    """unit id -> its name now."""
+    return {_unit_id(u.get('url')): u.get('location') for u in udocs or [] if isinstance(u, dict) and u.get('url')}
+
+
+def _named(events, names):
+    """Moves keyed on unit ids (from_key, to_key) and shown with each unit's current name. Rows recorded before
+    moves kept ids have only the name then: their key is 'name:' + that name."""
+    for e in events:
+        for side in ('from', 'to'):
+            uid, name = e.get(side + '_id'), e.get(side + '_unit')
+            e[side + '_key'] = uid or ('name:%s' % name if name else None)
+            if uid in names:
+                e[side + '_unit'] = names[uid]
+    return events
+
+
+def _to(e):
+    return e.get('to_key', e.get('to_unit'))
+
+
+def _from(e):
+    return e.get('from_key', e.get('from_unit'))
+
+
 def time_on_units(events, start, now, location):
     """Seconds on each unit between start and now. `events` ascending (dicts as Store.client_events gives),
     `location` where the client was at `start` (None: not connected). Returns [(unit or None, seconds)]."""
@@ -285,7 +310,7 @@ def time_on_units(events, start, now, location):
         if e['ts'] < start:
             continue
         spent[here] = spent.get(here, 0) + max(0, e['ts'] - t)
-        here = None if e['event'] == 'disconnected' else e['to_unit']
+        here = None if e['event'] == 'disconnected' else _to(e)
         t = e['ts']
     spent[here] = spent.get(here, 0) + max(0, now - t)
     return sorted(((u, int(sec)) for u, sec in spent.items() if sec > 0), key=lambda x: -x[1])
@@ -297,11 +322,11 @@ def where_at(events, start, current):
     before = [e for e in events if e['ts'] < start]
     if before:
         e = before[-1]
-        return None if e['event'] == 'disconnected' else e['to_unit']
+        return None if e['event'] == 'disconnected' else _to(e)
     after = [e for e in events if e['ts'] >= start]
     if after:
         e = after[0]
-        return None if e['event'] == 'connected' else e['from_unit']
+        return None if e['event'] == 'connected' else _from(e)
     return current
 
 
@@ -312,24 +337,36 @@ def client(mac, hours, db_path=cache.PATH, now=None):
     now = int(now if now is not None else time.time())
     try:
         with cache.Store(db_path, readonly=True) as s:
-            docs = s.get('clients')[1]
+            docs, udocs = s.get('clients')[1], s.get('units')[1]
             since = s.state().get('history_since')
             events = list(reversed(s.client_events(now - max_hours() * 3600, mac=mac, limit=100000)))
     except Exception:
-        docs, since, events = None, None, []
+        docs, udocs, since, events = None, None, None, []
+    names = _unit_names(udocs)
+    _named(events, names)
     row = next((r for r in clients(docs, include_all=True) if r['mac'] == mac), None)
     start = now - int(hours * 3600)
     if since:
         start = max(start, int(since))
-    current = row['unit'] if row and row['connected'] else None
+    current = row['unit_id'] or None if row and row['connected'] else None
     spent = time_on_units(events, start, now, where_at(events, start, current)) if since else []
     total = sum(sec for _, sec in spent) or 1
+    # what to call each unit in "time on each unit": its name now, else (a unit since removed, or a row from
+    # before ids were kept) the name recorded with the move
+    labels = dict(names)
+    for e in events:
+        for side in ('from', 'to'):
+            if e[side + '_key']:
+                labels.setdefault(e[side + '_key'], e[side + '_unit'])
+    if row and row['unit_id']:
+        labels.setdefault(row['unit_id'], row['unit'])
     return {
         'client': row,
         'hours': hours,
         'since': start if since else None,
         'history_since': since,
-        'time': [{'unit': u, 'seconds': sec, 'share': round(100 * sec / total, 1)} for u, sec in spent],
+        'time': [{'unit': labels.get(u, u) if u else None, 'seconds': sec, 'share': round(100 * sec / total, 1)}
+                 for u, sec in spent],
         'events': list(reversed([e for e in events if e['ts'] >= start]))[:500],
     }
 
@@ -339,9 +376,11 @@ def moves(hours, db_path=cache.PATH, now=None, limit=2000):
     now = int(now if now is not None else time.time())
     try:
         with cache.Store(db_path, readonly=True) as s:
-            return s.client_events(now - int(hours * 3600), limit=limit, events=('roamed', 'band'))
+            events = s.client_events(now - int(hours * 3600), limit=limit, events=('roamed', 'band'))
+            udocs = s.get('units')[1]
     except Exception:
         return []
+    return _named(events, _unit_names(udocs))
 
 
 BANDS = {'band_2_4GHz': '2.4 GHz', 'band_5GHz': '5 GHz', 'band_5GHz_full': '5 GHz', 'band_5GHz_low': '5 GHz (low)',
@@ -436,7 +475,8 @@ def unit(uid, db_path=cache.PATH, now=None, keep_hours=None):
         'days': keep_hours // 24,
         'history_since': since,
         'events': [e for e in uevents if e['unit'] == url],
-        'moves': [e for e in cevents if e['from_unit'] == loc or e['to_unit'] == loc][:500],
+        'moves': [e for e in _named(cevents, _unit_names(udocs)) if uid in (e['from_id'], e['to_id'])
+                  or (e['from_id'] is None and e['to_id'] is None and loc in (e['from_unit'], e['to_unit']))][:500],
     }
 
 

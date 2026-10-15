@@ -23,6 +23,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import sqlite3
 import stat
 import tempfile
 import unittest
@@ -59,6 +60,21 @@ class TestStore(unittest.TestCase):
         self.store.set_state(status="error", message="Cannot reach eero")
         self.assertEqual(self.store.state(), {"status": "error", "message": "Cannot reach eero",
                                               "network": {"name": "Example"}})
+
+    def test_old_table_gets_unit_ids(self):
+        """A database from before moves kept unit ids: the columns are added, old rows keep only names."""
+        path = os.path.join(self._tmp.name, "old.db")
+        db = sqlite3.connect(path)
+        db.execute("CREATE TABLE client_events (ts INTEGER NOT NULL, mac TEXT NOT NULL, name TEXT, "
+                   "event TEXT NOT NULL, from_unit TEXT, to_unit TEXT, band_from TEXT, band_to TEXT)")
+        db.execute("INSERT INTO client_events VALUES (1, '02:00:00:00:03:01', 'a', 'roamed', 'x', 'y', '5', '5')")
+        db.commit()
+        db.close()
+        with Store(path) as s:
+            s.add_client_events([(2, "02:00:00:00:03:01", "a", "roamed", "y", "x", "5", "5", "2", "1")])
+            self.assertEqual([(e["from_id"], e["to_id"]) for e in s.client_events(0)], [("2", "1"), (None, None)])
+        with Store(path) as s:                                  # opening it again changes nothing
+            self.assertEqual(len(s.client_events(0)), 2)
 
     def test_events_and_prune(self):
         day = 86400

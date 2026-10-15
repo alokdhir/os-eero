@@ -185,6 +185,33 @@ class TestHistory(unittest.TestCase):
                                         None, "Hallway", None, "5") for i in range(50)])
             self.assertEqual([m["event"] for m in query.moves(24, db_path=db, now=5000, limit=10)], ["roamed"])
 
+    def test_moves_follow_unit_ids(self):
+        """Moves are keyed on unit ids: a renamed unit keeps its moves under its new name, and two units with the
+        same name don't share them. Rows from before ids were kept still match by name."""
+        with tempfile.TemporaryDirectory() as d:
+            db = os.path.join(d, "eero.db")
+            units = fixture_doc("eeros")["data"]
+            units[1]["location"] = "Shop"                       # Garage renamed after the moves were recorded
+            units[2]["location"] = "Hallway"                    # and Patio now has the same name as Hallway
+            with Store(db) as s:
+                s.put("units", units, 5000)
+                s.put("clients", fixture_doc("devices")["data"], 5000)
+                s.set_state(history_since=1000)
+                s.add_client_events([
+                    (2000, "02:00:00:00:03:02", "p", "roamed", "Hallway", "Garage", "5", "2.4", "2000001", "2000002"),
+                    (3000, "02:00:00:00:03:05", "r", "roamed", "Garage", "Patio", "5", "5", "2000002", "2000003"),
+                    (3500, "02:00:00:00:03:05", "r", "band", "Patio", "Patio", "5", "2.4")])     # no ids: old row
+            shop = query.unit("2000002", db_path=db, now=5000)
+            self.assertEqual([(m["from_unit"], m["to_unit"]) for m in shop["moves"]],
+                             [("Shop", "Hallway"), ("Hallway", "Shop")])
+            self.assertEqual([m["mac"] for m in query.unit("2000001", db_path=db, now=5000)["moves"]],
+                             ["02:00:00:00:03:02"])                         # not Patio's moves, though named alike
+            self.assertEqual([m["mac"] for m in query.unit("2000003", db_path=db, now=5000)["moves"]],
+                             ["02:00:00:00:03:05"])                         # the old row matches no unit by name now
+            page = query.client("02:00:00:00:03:02", 24, db_path=db, now=5000)
+            self.assertEqual([t["unit"] for t in page["time"]], ["Shop", "Hallway"])
+            self.assertEqual(query.moves(24, db_path=db, now=5000)[-1]["to_unit"], "Shop")
+
     def test_client_and_moves(self):
         with tempfile.TemporaryDirectory() as d:
             db = os.path.join(d, "eero.db")

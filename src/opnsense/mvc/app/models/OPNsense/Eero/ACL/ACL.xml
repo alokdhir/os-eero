@@ -4,11 +4,17 @@
         <patterns>
             <pattern>ui/eero/*</pattern>
             <pattern>api/eero/report/*</pattern>
-            <pattern>api/eero/account/*</pattern>
-            <pattern>api/eero/settings/*</pattern>
-            <pattern>api/eero/service/*</pattern>
+            <pattern>api/eero/account/status</pattern>
         </patterns>
     </page-eero>
+    <page-eero-settings>
+        <name>eero: settings and account</name>
+        <patterns>
+            <pattern>api/eero/settings/*</pattern>
+            <pattern>api/eero/service/*</pattern>
+            <pattern>api/eero/account/*</pattern>
+        </patterns>
+    </page-eero-settings>
     <page-eero-units>
         <name>eero: rename units</name>
         <patterns>

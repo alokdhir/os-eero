@@ -41,6 +41,12 @@ def client_name(d):
             or d.get('manufacturer') or d.get('mac') or '?')
 
 
+def unit_id(url):
+    """A unit's id: the last part of its url (/2.2/eeros/<id>). Moves are recorded with it, so a rename or two
+    units with the same name don't confuse history."""
+    return (url or '').rstrip('/').rsplit('/', 1)[-1] or None
+
+
 def _where(clients):
     """mac -> (unit url, unit location, band, name) for connected Wi-Fi clients (eero's wired list is mostly
     devices on the house switches, attributed to the nearest unit: no history for those)."""
@@ -55,21 +61,23 @@ def _where(clients):
 
 
 def client_events(prev, cur, now):
-    """Events between two client lists. Rows: (ts, mac, name, event, from_unit, to_unit, band_from, band_to);
-    units are locations (names), falling back to the unit URL."""
+    """Events between two client lists. Rows: (ts, mac, name, event, from_unit, to_unit, band_from, band_to,
+    from_id, to_id). Units are identified by id (from_id, to_id); from_unit and to_unit are their names at the
+    time, for display only (falling back to the unit URL)."""
     before, after = _where(prev), _where(cur)
     events = []
     for mac, (url, loc, band, name) in sorted(after.items()):
         old = before.get(mac)
         if old is None:
-            events.append((now, mac, name, 'connected', None, loc or url, None, band))
+            events.append((now, mac, name, 'connected', None, loc or url, None, band, None, unit_id(url)))
         elif old[0] != url:
-            events.append((now, mac, name, 'roamed', old[1] or old[0], loc or url, old[2], band))
+            events.append((now, mac, name, 'roamed', old[1] or old[0], loc or url, old[2], band,
+                           unit_id(old[0]), unit_id(url)))
         elif old[2] != band:
-            events.append((now, mac, name, 'band', loc or url, loc or url, old[2], band))
+            events.append((now, mac, name, 'band', loc or url, loc or url, old[2], band, unit_id(url), unit_id(url)))
     for mac, (url, loc, band, name) in sorted(before.items()):
         if mac not in after:
-            events.append((now, mac, name, 'disconnected', loc or url, None, band, None))
+            events.append((now, mac, name, 'disconnected', loc or url, None, band, None, unit_id(url), None))
     return events
 
 

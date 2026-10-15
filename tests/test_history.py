@@ -54,7 +54,8 @@ class TestClientEvents(unittest.TestCase):
         phone["source"].update(url=hall["url"], location=hall["location"])
         phone["interface"]["frequency"] = "5"
         self.assertEqual(client_events(before, after, T),
-                         [(T, "02:00:00:00:03:02", "phone-1", "roamed", "Garage", "Hallway", "2.4", "5")])
+                         [(T, "02:00:00:00:03:02", "phone-1", "roamed", "Garage", "Hallway", "2.4", "5",
+                           "2000002", "2000001")])                      # unit ids: what history is keyed on
 
     def test_band_change_same_unit(self):
         before, after = clients(), clients()
