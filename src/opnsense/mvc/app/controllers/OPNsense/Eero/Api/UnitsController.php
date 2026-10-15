@@ -33,8 +33,9 @@ use OPNsense\Base\ApiControllerBase;
 use OPNsense\Core\Backend;
 
 /**
- * Changes to eero units: the only changes the plugin makes to eero. A privilege of its own (ACL page-eero-units),
- * so users who may only look at the page can't rename anything.
+ * Changes to eero units: the only changes the plugin makes to eero. Each has a privilege of its own (ACL
+ * page-eero-units for renaming, page-eero-reboot for rebooting), so users who may only look at the page can't
+ * change anything. The GUI user is passed on, and units.py logs who asked for what.
  */
 class UnitsController extends ApiControllerBase
 {
@@ -51,8 +52,25 @@ class UnitsController extends ApiControllerBase
         if ($name === '' || mb_strlen($name) > 40) {
             return ['result' => 'failed', 'message' => gettext('Enter a name of 1 to 40 characters.')];
         }
-        $out = trim((new Backend())->configdpRun('eero rename', [$id, $name]));
-        $result = json_decode($out, true);
+        return $this->run('eero rename', [$id, $name, $this->getUserName()]);
+    }
+
+    /** Reboot one unit (id) or every unit (id "all"). */
+    public function rebootAction()
+    {
+        if (!$this->request->isPost()) {
+            return ['result' => 'failed'];
+        }
+        $id = (string)$this->request->getPost('id', null, '');
+        if ($id !== 'all' && !preg_match('/^[0-9A-Za-z_-]{1,40}$/', $id)) {
+            return ['result' => 'failed', 'message' => gettext('Unknown unit.')];
+        }
+        return $this->run('eero reboot', [$id, $this->getUserName()]);
+    }
+
+    private function run($action, array $params)
+    {
+        $result = json_decode(trim((new Backend())->configdpRun($action, $params)), true);
         return is_array($result) ? $result : ['result' => 'failed', 'message' => gettext('No answer from the eero service.')];
     }
 }

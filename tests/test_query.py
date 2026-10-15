@@ -224,6 +224,16 @@ class TestHistory(unittest.TestCase):
             self.assertIn("error", query.unit("9999999", db_path=db, now=5000))
             self.assertIn("error", query.unit("../x", db_path=db, now=5000))
 
+    def test_widget(self):
+        with tempfile.TemporaryDirectory() as d:
+            db = os.path.join(d, "eero.db")
+            with Store(db) as s:
+                s.put("units", fixture_doc("eeros")["data"], 5000)
+                s.put("clients", fixture_doc("devices")["data"], 5000)
+            w = query.widget(db_path=db, sessions=SessionStore(os.path.join(d, "s")), pidfile=os.path.join(d, "pid"))
+            self.assertEqual([u["name"] for u in w["units"]], ["Hallway", "Garage", "Patio"])   # primary first
+            self.assertEqual((w["units"][0]["primary"], w["clients"], w["status"]), (True, 3, "stopped"))
+
     def test_speed(self):
         self.assertEqual([query._speed(s) for s in ("P1000", "P2500", "P100", "P0", None, "x")],
                          ["1 Gbps", "2.5 Gbps", "100 Mbps", "", "", ""])

@@ -105,6 +105,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
         const dash = '<span class="text-muted">–</span>';
         const canRename = {{ canRename ? 'true' : 'false' }};
+        const canReboot = {{ canReboot ? 'true' : 'false' }};
         function renameButton(row) {
             return canRename ? '<i class="fa fa-pencil eero-edit" title="{{ lang._('Rename this unit') }}" data-id="' + esc(row.id)
                 + '" data-name="' + esc(row.name) + '"></i>' : '';
@@ -342,6 +343,11 @@ POSSIBILITY OF SUCH DAMAGE.
                 const u = page.unit;
                 $d.append($('<h3 id="unit_title" style="margin-top: 0"/>').html(unitLabel(u, esc(u.name)) + renameButton(u)),
                     $('<p class="text-muted"/>').text([plain(u.model), plain(u.ip)].filter(Boolean).join(' · ')));
+                if (canReboot) {
+                    $d.append($('<p/>').append($('<button type="button" class="btn btn-default btn-xs eero-reboot"/>')
+                        .attr({'data-id': plain(u.id), 'data-name': plain(u.name)})
+                        .html('<i class="fa fa-power-off"></i> {{ lang._('Reboot this unit') }}')));
+                }
 
                 const reboot = Date.parse(plain(u.last_reboot));
                 $d.append(table(null, [
@@ -411,6 +417,10 @@ POSSIBILITY OF SUCH DAMAGE.
                     box.append($('<h4/>').text(plain(g.title)),
                         $('<table class="table table-striped table-condensed" style="margin-bottom: 20px"/>').append(tbody));
                 });
+                if (canReboot) {
+                    box.prepend($('<p/>').append($('<button type="button" class="btn btn-default btn-xs eero-reboot" data-id="all"/>')
+                        .html('<i class="fa fa-power-off"></i> {{ lang._('Reboot all units') }}')));
+                }
                 $('#network_body').empty().append(box);
             });
         }
@@ -562,6 +572,32 @@ POSSIBILITY OF SUCH DAMAGE.
                         if (!message) load($('#maintabs li.active a').attr('href'));
                     });
                 }, name);
+        });
+        /* reboot one unit or all of them: say what it does, then ask */
+        $(document).on('click', '.eero-reboot', function () {
+            const id = String($(this).data('id'));
+            const all = id === 'all';
+            const message = all
+                ? '{{ lang._('Every eero unit restarts. Wi-Fi is down everywhere, and anything plugged into an eero loses its connection, for about 3 minutes.') }}'
+                : $('<div/>').text(plain($(this).data('name'))).html() + ' {{ lang._('restarts and is gone for a few minutes. Its Wi-Fi clients move to another unit if they can reach one; the rest, and anything plugged into it, lose their connection until it is back.') }}';
+            BootstrapDialog.confirm({
+                title: all ? '{{ lang._('Reboot all units') }}' : '{{ lang._('Reboot this unit') }}',
+                message: message,
+                type: BootstrapDialog.TYPE_DANGER,
+                btnOKLabel: '{{ lang._('Reboot') }}',
+                btnOKClass: 'btn-danger',
+                callback: function (yes) {
+                    if (!yes) return;
+                    post('/api/eero/units/reboot', {id: id}, function (failure) {
+                        BootstrapDialog.show({
+                            type: failure ? BootstrapDialog.TYPE_DANGER : BootstrapDialog.TYPE_INFO,
+                            title: failure ? '{{ lang._('Not rebooted') }}' : '{{ lang._('Rebooting') }}',
+                            message: failure ? plain(failure) : '{{ lang._('eero is restarting it now. Units show as offline here once eero reports it, which can take a minute or two.') }}',
+                            buttons: [{label: '{{ lang._('Close') }}', action: dlg => dlg.close()}]
+                        });
+                    });
+                }
+            });
         });
         $('#eero_signout').on('click', function () {
             BootstrapDialog.confirm({

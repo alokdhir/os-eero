@@ -12,7 +12,13 @@
     <page-eero-units>
         <name>eero: rename units</name>
         <patterns>
-            <pattern>api/eero/units/*</pattern>
+            <pattern>api/eero/units/rename</pattern>
         </patterns>
     </page-eero-units>
+    <page-eero-reboot>
+        <name>eero: reboot units</name>
+        <patterns>
+            <pattern>api/eero/units/reboot</pattern>
+        </patterns>
+    </page-eero-reboot>
 </acl>

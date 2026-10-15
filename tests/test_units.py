@@ -45,6 +45,12 @@ class FakeClient:
             raise self.fail
         return {"location": name}
 
+    def reboot(self, path):
+        self.calls.append(("reboot", path, self.token))
+        if self.fail:
+            raise self.fail
+        return None
+
 
 class TestRename(unittest.TestCase):
     def setUp(self):
@@ -53,13 +59,17 @@ class TestRename(unittest.TestCase):
         self.sessions.save("tok-1")
         self.store = Store(os.path.join(self._tmp.name, "eero.db"))
         self.store.put("units", fixture_doc("eeros")["data"], 1000)
+        self.logged = []
 
     def tearDown(self):
         self.store.close()
         self._tmp.cleanup()
 
     def rename(self, uid, name, client=None):
-        return units.rename(client or FakeClient(), self.sessions, self.store, uid, name)
+        return units.rename(client or FakeClient(), self.sessions, self.store, uid, name, "admin", self.logged.append)
+
+    def reboot(self, target, client=None):
+        return units.reboot(client or FakeClient(), self.sessions, self.store, target, "admin", self.logged.append)
 
     def test_rename_updates_the_cache(self):
         c = FakeClient()
@@ -68,6 +78,7 @@ class TestRename(unittest.TestCase):
         fetched, docs = self.store.get("units")
         self.assertEqual((fetched, docs[0]["location"]), (1000, "Front hall"))
         self.assertEqual(docs[2]["wireless_upstream_node"]["name"], "Front hall")    # Patio hangs off it
+        self.assertEqual(self.logged, ['unit "Hallway" renamed to "Front hall" by admin'])
 
     def test_refused_before_calling_eero(self):
         c = FakeClient()
@@ -86,6 +97,32 @@ class TestRename(unittest.TestCase):
             self.assertEqual(r["result"], "failed")
             self.assertIn(says, r["message"])
         self.assertEqual(self.store.get("units")[1][0]["location"], "Hallway")
+        self.assertTrue(all("failed" in line for line in self.logged))
+
+    def test_reboot_a_unit(self):
+        c = FakeClient()
+        self.assertEqual(self.reboot("2000002", c), {"result": "ok"})
+        self.assertEqual(c.calls, [("reboot", "/2.2/eeros/2000002/reboot", "tok-1")])
+        self.assertEqual(self.logged, ['reboot of unit "Garage" requested by admin'])
+
+    def test_reboot_the_network(self):
+        c = FakeClient()
+        self.assertIn("No eero network", self.reboot("all", c)["message"])          # not fetched yet
+        self.store.set_state(network={"url": "/2.2/networks/1000001", "name": "Example"})
+        self.assertEqual(self.reboot("all", c), {"result": "ok"})
+        self.assertEqual(c.calls, [("reboot", "/2.2/networks/1000001/reboot", "tok-1")])
+        self.assertEqual(self.logged, ['reboot of every unit in "Example" requested by admin'])
+
+    def test_reboot_refused(self):
+        c = FakeClient()
+        for target in ("../x", "9999999", ""):
+            self.assertEqual(self.reboot(target, c)["result"], "failed", target)
+        self.sessions.clear()
+        self.assertIn("Sign in", self.reboot("2000002", c)["message"])
+        self.assertEqual(c.calls, [])
+        self.sessions.save("tok-2")
+        r = self.reboot("2000002", FakeClient(api.LoginFailed("error.eero.offline")))
+        self.assertIn("refused the reboot (error.eero.offline)", r["message"])
 
 
 if __name__ == "__main__":

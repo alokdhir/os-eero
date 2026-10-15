@@ -271,3 +271,7 @@ class Client:
     def set_location(self, unit, name):
         """Rename a unit: its location, the name the app shows. `unit` is the unit's url (/2.2/eeros/<id>)."""
         return strip_secrets(self._request('PUT', unit, form={'location': name}))
+
+    def reboot(self, path):
+        """Reboot one unit (its resources.reboot, /2.2/eeros/<id>/reboot) or every unit (<network url>/reboot)."""
+        return strip_secrets(self._request('POST', path))

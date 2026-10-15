@@ -1,0 +1,25 @@
+<metadata>
+    <eero>
+        <filename>Eero.js</filename>
+        <link>/ui/eero/</link>
+        <endpoints>
+            <endpoint>/api/eero/report/widget</endpoint>
+        </endpoints>
+        <translations>
+            <title>eero</title>
+            <connected>Connected to</connected>
+            <updated>updated</updated>
+            <ago>ago</ago>
+            <stopped>Service stopped</stopped>
+            <signin>Not signed in to eero</signin>
+            <limited>eero is limiting requests</limited>
+            <unreachable>Cannot reach eero</unreachable>
+            <unitsonline>units online</unitsonline>
+            <of>of</of>
+            <clients>Wi-Fi clients</clients>
+            <primary>primary</primary>
+            <offline>Offline</offline>
+            <nodata>Nothing from eero yet.</nodata>
+        </translations>
+    </eero>
+</metadata>

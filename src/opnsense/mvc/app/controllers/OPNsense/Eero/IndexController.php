@@ -41,8 +41,10 @@ class IndexController extends \OPNsense\Base\IndexController
         $keep = max(1, min(90, (int)(string)(new \OPNsense\Eero\Eero())->general->history_days));
         $periods = array_values(array_unique(array_merge(array_filter([1, 7, 30], fn($d) => $d < $keep), [$keep])));
         $this->view->periods = $periods;
-        /* the rename pencil only for users with the "eero: rename units" privilege */
-        $this->view->canRename = (new \OPNsense\Core\ACL())->isPageAccessible($this->getUserName(), '/api/eero/units/rename');
+        /* the rename pencil and the reboot buttons only for users with those privileges */
+        $acl = new \OPNsense\Core\ACL();
+        $this->view->canRename = $acl->isPageAccessible($this->getUserName(), '/api/eero/units/rename');
+        $this->view->canReboot = $acl->isPageAccessible($this->getUserName(), '/api/eero/units/reboot');
         $this->view->pick('OPNsense/Eero/index');
     }
 }

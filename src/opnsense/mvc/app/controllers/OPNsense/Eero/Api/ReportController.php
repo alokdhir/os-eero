@@ -168,6 +168,12 @@ class ReportController extends ApiControllerBase
         return $this->searchRecordsetBase($rows, self::SEARCH['moves'], null, null, SORT_NUMERIC);
     }
 
+    /** The dashboard widget (from eerod's cache; never calls eero). */
+    public function widgetAction()
+    {
+        return $this->query(['widget']);
+    }
+
     public function networkAction()
     {
         return $this->query(['network']);

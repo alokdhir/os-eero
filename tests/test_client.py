@@ -250,6 +250,12 @@ class TestLogin(unittest.TestCase):
         with self.assertRaises(client.SessionInvalid):
             Client(FakeTransport({}), None).set_location(unit, "Den")       # no session: no call at all
 
+    def test_reboot(self):
+        path = "/2.2/eeros/2000001/reboot"
+        t = FakeTransport({("POST", path): [Response(202, {}, b'{"meta": {"code": 202}, "data": null}')]})
+        self.assertIsNone(Client(t, TOKEN).reboot(path))
+        self.assertEqual((t.calls[0]["method"], t.calls[0]["headers"]["Cookie"]), ("POST", "s=" + TOKEN))
+
 
 if __name__ == "__main__":
     unittest.main()
