@@ -1,14 +1,15 @@
 # eero for OPNsense
 
 See what your eero mesh Wi-Fi is doing from the OPNsense GUI: every eero unit, every client and
-which unit it's on, and the network's settings. Read-only: changes stay in the eero app.
+which unit it's on, and the network's settings.
 
 ## What it shows
 
 - **Units**: each eero unit: online or not, model, IP, wired or wireless backhaul (and which
   unit it hangs off), mesh quality, clients and uptime. Each unit has its own page: the clients on
   it now, its radios (channel, width, how busy), its ports and what is seen on them, firmware,
-  power and serial number, and when it went offline or came back.
+  power and serial number, and when it went offline or came back. Rename a unit with the pencil
+  next to its name.
 - **Clients**: every Wi-Fi client: name, which unit it's on, band and channel, signal, connection
   quality (eero's 0-5 bars), address, and when it was last seen. Each client has its own page with
   the time it spent on each unit and its moves between them; *Recent moves* lists the latest moves

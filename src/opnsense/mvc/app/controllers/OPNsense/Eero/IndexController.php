@@ -31,12 +31,14 @@ namespace OPNsense\Eero;
 class IndexController extends \OPNsense\Base\IndexController
 {
     /**
-     * One page with tabs: Devices (the eero units), Clients, Network, Settings. The menu entry is a single
+     * One page with tabs: Units, Clients, Network, Settings. The menu entry is a single
      * top-level link, so everything lives on this page.
      */
     public function indexAction()
     {
         $this->view->formSettings = $this->getForm('settings');
+        /* the rename pencil only for users with the "eero: rename units" privilege */
+        $this->view->canRename = (new \OPNsense\Core\ACL())->isPageAccessible($this->getUserName(), '/api/eero/units/rename');
         $this->view->pick('OPNsense/Eero/index');
     }
 }

@@ -242,6 +242,14 @@ class TestLogin(unittest.TestCase):
         self.assertEqual(t.calls[0]["form"], {"Cookie": "s=" + TOKEN})
         self.assertIsNone(c.token)
 
+    def test_set_location(self):
+        unit = "/2.2/eeros/2000001"
+        t = FakeTransport({("PUT", unit): [Response(200, {}, b'{"meta": {"code": 200}, "data": {"location": "Den"}}')]})
+        self.assertEqual(Client(t, TOKEN).set_location(unit, "Den"), {"location": "Den"})
+        self.assertEqual((t.calls[0]["form"], t.calls[0]["headers"]["Cookie"]), ({"location": "Den"}, "s=" + TOKEN))
+        with self.assertRaises(client.SessionInvalid):
+            Client(FakeTransport({}), None).set_location(unit, "Den")       # no session: no call at all
+
 
 if __name__ == "__main__":
     unittest.main()

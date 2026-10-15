@@ -59,6 +59,16 @@ those now), `/profiles` (150 KB, parental controls), `/diagnostics` (only `{stat
 (eero's contact details), `/updates` (same as the network's `updates` object), `/ac_compat`.
 `/transfer` returns 403 and `/settings`, `/burst_reporters` 404 on this network.
 
+## What we change
+
+The only change the plugin makes (decided 2026-10-15):
+
+| Call | Body | Use |
+|---|---|---|
+| `PUT /2.2/eeros/<id>` (the unit's `url`) | form `location=<name>` | Rename a unit (the name the app shows). From eero-api's `set_location`. Verified 2026-10-15: the next GET returned the new name; eero accepts a name another unit already has |
+
+Each unit also lists `resources.reboot` (`/2.2/eeros/<id>/reboot`), so a single unit can be rebooted as well as the whole network (`POST <network>/reboot`). Not used yet (EERO-8).
+
 ## Secrets in responses: never cache, log or show
 
 The network object and others carry credentials. Strip them before anything is written to the

@@ -28,6 +28,11 @@ POSSIBILITY OF SUCH DAMAGE.
     .eero-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; vertical-align: middle; }
     .eero-bars i { display: block; width: 4px; background: currentColor; border-radius: 1px; }
     .eero-bars i.off { opacity: 0.2; }
+    /* the rename pencil, as in os-loupe: shown on hover (always on touch screens) */
+    .eero-edit { color: #999; cursor: pointer; visibility: hidden; padding-left: 8px; }
+    .tabulator-row:hover .eero-edit, #unit_title:hover .eero-edit { visibility: visible; }
+    @media (hover: none) { .eero-edit { visibility: visible; } }
+    .eero-edit:hover { color: #337ab7; }
 </style>
 
 <script>
@@ -96,6 +101,11 @@ POSSIBILITY OF SUCH DAMAGE.
            default formatter, so every column with eero- or device-supplied text uses one that escapes. */
 
         const dash = '<span class="text-muted">–</span>';
+        const canRename = {{ canRename ? 'true' : 'false' }};
+        function renameButton(row) {
+            return canRename ? '<i class="fa fa-pencil eero-edit" title="{{ lang._('Rename this unit') }}" data-id="' + esc(row.id)
+                + '" data-name="' + esc(row.name) + '"></i>' : '';
+        }
         function unitLabel(row, name) {
             return name + (row.primary ? ' <span class="text-muted">({{ lang._('primary') }})</span>' : '')
                 + (row.online ? '' : ' <span class="label label-danger">{{ lang._('Offline') }}</span>');
@@ -106,7 +116,7 @@ POSSIBILITY OF SUCH DAMAGE.
                 return v === null || v === undefined || v === '' ? dash : esc(v);
             },
             unit: function (column, row) {
-                return unitLabel(row, '<a href="#unit=' + encodeURIComponent(plain(row.id)) + '">' + esc(row.name) + '</a>');
+                return unitLabel(row, '<a href="#unit=' + encodeURIComponent(plain(row.id)) + '">' + esc(row.name) + '</a>') + renameButton(row);
             },
             client: function (column, row) {
                 /* icon: a Font Awesome class from Loupe (when installed); only fa-* class names are used */
@@ -324,7 +334,7 @@ POSSIBILITY OF SUCH DAMAGE.
                     return;
                 }
                 const u = page.unit;
-                $d.append($('<h3 style="margin-top: 0"/>').html(unitLabel(u, esc(u.name))),
+                $d.append($('<h3 id="unit_title" style="margin-top: 0"/>').html(unitLabel(u, esc(u.name)) + renameButton(u)),
                     $('<p class="text-muted"/>').text([plain(u.model), plain(u.ip)].filter(Boolean).join(' · ')));
 
                 const reboot = Date.parse(plain(u.last_reboot));
@@ -465,8 +475,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
         /* --- sign in: 1) email or phone, eero sends a code; 2) the code */
 
-        function askDialog(title, label, help, button, inputType, send) {
-            const input = $('<input class="form-control"/>').attr('type', inputType);
+        function askDialog(title, label, help, button, inputType, send, value) {
+            const input = $('<input class="form-control"/>').attr('type', inputType).val(value || '');
             const error = $('<div class="text-danger" style="margin-top: 8px"/>');
             const body = $('<div/>').append($('<label/>').text(label), input,
                 $('<p class="help-block"/>').text(help), error);
@@ -529,6 +539,20 @@ POSSIBILITY OF SUCH DAMAGE.
         $(document).on('click', '#eero_signin, .eero-signin', function (e) {
             e.preventDefault();
             signIn();
+        });
+        /* rename a unit: the one change the plugin makes to eero */
+        $(document).on('click', '.eero-edit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const id = String($(this).data('id')), name = plain($(this).data('name'));
+            askDialog('{{ lang._('Rename unit') }}', '{{ lang._('Name') }}',
+                '{{ lang._('The name eero shows for this unit, in the eero app too.') }}', '{{ lang._('Rename') }}', 'text',
+                function (newName, done) {
+                    post('/api/eero/units/rename', {id: id, name: newName}, function (message) {
+                        done(message);
+                        if (!message) load($('#maintabs li.active a').attr('href'));
+                    });
+                }, name);
         });
         $('#eero_signout').on('click', function () {
             BootstrapDialog.confirm({

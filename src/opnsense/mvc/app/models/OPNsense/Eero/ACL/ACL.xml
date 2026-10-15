@@ -3,7 +3,16 @@
         <name>eero</name>
         <patterns>
             <pattern>ui/eero/*</pattern>
-            <pattern>api/eero/*</pattern>
+            <pattern>api/eero/report/*</pattern>
+            <pattern>api/eero/account/*</pattern>
+            <pattern>api/eero/settings/*</pattern>
+            <pattern>api/eero/service/*</pattern>
         </patterns>
     </page-eero>
+    <page-eero-units>
+        <name>eero: rename units</name>
+        <patterns>
+            <pattern>api/eero/units/*</pattern>
+        </patterns>
+    </page-eero-units>
 </acl>

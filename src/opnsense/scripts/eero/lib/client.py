@@ -265,3 +265,9 @@ class Client:
     def connections(self, unit):
         """Ports and wireless clients of one unit: unit['resources']['connections']."""
         return self.get(unit)
+
+    # --- changes (the only ones the plugin makes; see docs/API.md)
+
+    def set_location(self, unit, name):
+        """Rename a unit: its location, the name the app shows. `unit` is the unit's url (/2.2/eeros/<id>)."""
+        return strip_secrets(self._request('PUT', unit, form={'location': name}))
