@@ -81,9 +81,14 @@ def _online(units):
     return out
 
 
+def _primary(units):
+    return {u['url'] for u in units or [] if isinstance(u, dict) and u.get('url') and u.get('is_primary_node')}
+
+
 def unit_events(prev, cur, now):
-    """Rows: (ts, unit url, location, 'online'|'offline'). A unit that disappears from the list counts as
-    offline; a new unit as online."""
+    """Rows: (ts, unit url, location, 'online'|'offline'|'primary'). A unit that disappears from the list counts
+    as offline; a new unit as online. 'primary': the unit eero now calls primary (its gateway eero) wasn't before;
+    eero documents no election, so this records whether and when the role ever moves."""
     before, after = _online(prev), _online(cur)
     events = []
     for url, (up, loc) in sorted(after.items()):
@@ -95,4 +100,7 @@ def unit_events(prev, cur, now):
     for url, (up, loc) in sorted(before.items()):
         if url not in after and up:
             events.append((now, url, loc, 'offline'))
+    if before:
+        for url in sorted(_primary(cur) - _primary(prev)):
+            events.append((now, url, after[url][1], 'primary'))
     return events

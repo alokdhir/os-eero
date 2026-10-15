@@ -134,11 +134,13 @@ class TestTabs(unittest.TestCase):
         self.assertIn('tv "den" <b>', [r["name"] for r in rows])
 
     def test_network(self):
-        groups = query.network(fixture_doc("network")["data"], fixture_doc("thread")["data"], fixture_doc("speedtest")["data"])
+        groups = query.network(fixture_doc("network")["data"], fixture_doc("thread")["data"], fixture_doc("speedtest")["data"],
+                               fixture_doc("eeros")["data"])
         flat = {label: value for g in groups for label, value in g["rows"]}
         self.assertTrue(flat["Mode"].startswith("Bridge"))
         self.assertEqual(flat["Guest network"], "Example Guest (on)")
         self.assertEqual(flat["Thread"], "Off")
+        self.assertEqual(flat["Primary unit"], "Hallway")
         self.assertEqual(flat["Preferred update hour"], "03:00")
         self.assertEqual(flat["Download"], "940.5 Mbps")
         self.assertNotIn("SECRET", json.dumps(groups))
@@ -215,6 +217,8 @@ class TestHistory(unittest.TestCase):
             self.assertEqual([c["mac"] for c in page["clients"]], ["02:00:00:00:03:02"])
             self.assertEqual([e["event"] for e in page["events"]], ["online", "offline"])        # newest first
             self.assertEqual([m["mac"] for m in page["moves"]], ["02:00:00:00:03:02"])
+            later = query.unit("2000002", 720, db_path=db, now=5000 + 2 * 86400)
+            self.assertEqual((len(later["events"]), later["moves"]), (2, []))          # moves: the last day only
             self.assertEqual(query.unit("2000003", 24, db_path=db, now=5000)["ports"][0]["speed"], "")  # no link
             self.assertEqual(query.unit("2000001", 24, db_path=db, now=5000)["unit"]["power"], "Power adapter")
             self.assertIn("error", query.unit("9999999", 24, db_path=db, now=5000))

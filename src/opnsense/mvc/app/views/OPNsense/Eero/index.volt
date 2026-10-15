@@ -376,15 +376,19 @@ POSSIBILITY OF SUCH DAMAGE.
                     $d.append($('<p class="text-muted"/>').text('{{ lang._('No history yet: it starts a minute after the first update from eero.') }}'));
                     return;
                 }
-                $d.append($('<h4/>').text('{{ lang._('Online and offline') }}'), page.events.length
-                    ? table(null, page.events.map(e => [esc(when(e.ts)), e.event === 'offline'
-                        ? '<span class="label label-danger">{{ lang._('Went offline') }}</span>' : '<span class="label label-success">{{ lang._('Back online') }}</span>']))
+                const STATE = {
+                    offline: '<span class="label label-danger">{{ lang._('Went offline') }}</span>',
+                    online: '<span class="label label-success">{{ lang._('Back online') }}</span>',
+                    primary: '<span class="label label-info">{{ lang._('Became primary') }}</span>'
+                };
+                $d.append($('<h4/>').text('{{ lang._('Status changes') }}'), page.events.length
+                    ? table(null, page.events.map(e => [esc(when(e.ts)), STATE[e.event] || esc(e.event)]))
                         .find('td:first-child').css('width', '9em').end()
                     : $('<p class="text-muted"/>').text('{{ lang._('Online throughout this period.') }}'));
-                $d.append($('<h4/>').text('{{ lang._('Client moves on and off this unit') }}'), page.moves.length
+                $d.append($('<h4/>').text('{{ lang._('Client moves on and off this unit, last 24 hours') }}'), page.moves.length
                     ? table(null, page.moves.map(e => [esc(when(e.ts)), formatters.client(null, e), moveText(e)]))
                         .find('td:first-child').css('width', '9em').end()
-                    : $('<p class="text-muted"/>').text('{{ lang._('No moves in this period.') }}'));
+                    : $('<p class="text-muted"/>').text('{{ lang._('No moves in the last 24 hours.') }}'));
             });
         }
         function showNetwork() {

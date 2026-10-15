@@ -189,7 +189,7 @@ def _yes(v):
     return None if v is None else ('Yes' if v else 'No')
 
 
-def network(net, thread=None, speedtests=None):
+def network(net, thread=None, speedtests=None, units=None):
     """The Network tab: [{'title': ..., 'rows': [[label, value], ...]}, ...]; values are plain text."""
     if not isinstance(net, dict):
         return []
@@ -228,6 +228,8 @@ def network(net, thread=None, speedtests=None):
             ('HomeKit', _yes((net.get('homekit') or {}).get('enabled'))),
         ]),
         ('Units and clients', [
+            ('Primary unit', next((u.get('location') for u in units or [] if isinstance(u, dict)
+                                   and u.get('is_primary_node')), None)),
             ('Units online', net.get('online_eeros_count')),
             ('Units offline', net.get('offline_eeros_count')),
             ('Clients', (net.get('clients') or {}).get('count')),
@@ -369,8 +371,12 @@ def _neighbour(n, by_ip):
     return ('port %s' % port) if port and n.get('portIdType') != 'MacAddress' else None
 
 
+MOVES_HOURS = 24                                # a unit's client moves: the last day only (a busy unit has hundreds)
+
+
 def unit(uid, hours, db_path=cache.PATH, now=None):
-    """One unit's page: its details, radios, ports, clients on it now, and its history."""
+    """One unit's page: its details, radios, ports, clients on it now, and its history: status changes over
+    `hours`, client moves over the last day."""
     uid = str(uid or '').strip()
     if not re.match(r'^[0-9A-Za-z_-]{1,40}$', uid):
         return {'error': 'invalid unit'}
@@ -381,7 +387,7 @@ def unit(uid, hours, db_path=cache.PATH, now=None):
             udocs, cdocs = s.get('units')[1], s.get('clients')[1]
             since = s.state().get('history_since')
             uevents = s.unit_events(start, limit=5000)
-            cevents = s.client_events(start, limit=50000)
+            cevents = s.client_events(now - MOVES_HOURS * 3600, limit=50000)
     except Exception:
         udocs, cdocs, since, uevents, cevents = None, None, None, [], []
     u = next((d for d in udocs or [] if isinstance(d, dict) and _unit_id(d.get('url')) == uid), None)
@@ -436,7 +442,7 @@ def main(argv):
     elif what == 'clients':
         result = clients(_cached('clients'), include_all=len(argv) > 2 and argv[2] == 'all')
     elif what == 'network':
-        result = network(_cached('network'), _cached('thread'), _cached('speedtest'))
+        result = network(_cached('network'), _cached('thread'), _cached('speedtest'), _cached('units'))
     elif what == 'client':
         result = client(argv[2] if len(argv) > 2 else '', hours_arg(argv[3] if len(argv) > 3 else 24))
     elif what == 'moves':

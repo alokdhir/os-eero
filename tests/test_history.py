@@ -91,6 +91,14 @@ class TestUnitEvents(unittest.TestCase):
     def test_first_list_is_quiet(self):
         self.assertEqual(unit_events([], units(), T), [])
 
+    def test_primary_moves(self):
+        before = fixture_doc("eeros")["data"]
+        after = copy.deepcopy(before)
+        before[0]["is_primary_node"], after[0]["is_primary_node"], after[1]["is_primary_node"] = True, False, True
+        self.assertEqual(unit_events(before, after, T), [(T, after[1]["url"], "Garage", "primary")])
+        self.assertEqual(unit_events(after, after, T), [])
+        self.assertEqual(unit_events([], after, T), [])                  # first list: nothing to compare
+
     def test_offline_and_back(self):
         before, after = units(), units()
         after[1]["state"] = "OFFLINE"
