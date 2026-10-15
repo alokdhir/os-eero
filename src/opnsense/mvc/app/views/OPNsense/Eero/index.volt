@@ -44,7 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
         $('#reconfigureAct').SimpleActionButton({
             onPreAction: function () {
                 const dfObj = new $.Deferred();
-                saveFormToEndpoint('/api/eero/settings/set', 'frm_settings', function () { dfObj.resolve(); });
+                /* as core does: a rejected setting must reject too, or Apply keeps spinning */
+                saveFormToEndpoint('/api/eero/settings/set', 'frm_settings', function () { dfObj.resolve(); }, true,
+                    function () { dfObj.reject(); });
                 return dfObj;
             },
             onAction: function () {
@@ -567,7 +569,7 @@ POSSIBILITY OF SUCH DAMAGE.
         $(document).on('click', '.eero-edit', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            const id = String($(this).data('id')), name = plain($(this).data('name'));
+            const id = String($(this).attr('data-id')), name = plain($(this).attr('data-name'));
             askDialog('{{ lang._('Rename unit') }}', '{{ lang._('Name') }}',
                 '{{ lang._('The name eero shows for this unit, in the eero app too.') }}', '{{ lang._('Rename') }}', 'text',
                 function (newName, done) {
@@ -579,11 +581,11 @@ POSSIBILITY OF SUCH DAMAGE.
         });
         /* reboot one unit or all of them: say what it does, then ask */
         $(document).on('click', '.eero-reboot', function () {
-            const id = String($(this).data('id'));
+            const id = String($(this).attr('data-id'));
             const all = id === 'all';
             const message = all
                 ? '{{ lang._('Every eero unit restarts. Wi-Fi is down everywhere, and anything plugged into an eero loses its connection, for about 3 minutes.') }}'
-                : $('<div/>').text(plain($(this).data('name'))).html() + ' {{ lang._('restarts and is gone for a few minutes. Its Wi-Fi clients move to another unit if they can reach one; the rest, and anything plugged into it, lose their connection until it is back.') }}';
+                : $('<div/>').text(plain($(this).attr('data-name'))).html() + ' {{ lang._('restarts and is gone for a few minutes. Its Wi-Fi clients move to another unit if they can reach one; the rest, and anything plugged into it, lose their connection until it is back.') }}';
             BootstrapDialog.confirm({
                 title: all ? '{{ lang._('Reboot all units') }}' : '{{ lang._('Reboot this unit') }}',
                 message: message,
@@ -596,7 +598,7 @@ POSSIBILITY OF SUCH DAMAGE.
                         BootstrapDialog.show({
                             type: failure ? BootstrapDialog.TYPE_DANGER : BootstrapDialog.TYPE_INFO,
                             title: failure ? '{{ lang._('Not rebooted') }}' : '{{ lang._('Rebooting') }}',
-                            message: failure ? plain(failure) : '{{ lang._('eero is restarting it now. Units show as offline here once eero reports it, which can take a minute or two.') }}',
+                            message: failure ? $('<div/>').text(plain(failure)) : '{{ lang._('eero is restarting it now. Units show as offline here once eero reports it, which can take a minute or two.') }}',
                             buttons: [{label: '{{ lang._('Close') }}', action: dlg => dlg.close()}]
                         });
                     });

@@ -70,7 +70,7 @@ class UnitsController extends ApiControllerBase
 
     private function run($action, array $params)
     {
-        $result = json_decode(trim((new Backend())->configdpRun($action, $params)), true);
+        $result = json_decode(trim((new Backend())->configdpRun($action, $params) ?? ''), true);
         return is_array($result) ? $result : ['result' => 'failed', 'message' => gettext('No answer from the eero service.')];
     }
 }

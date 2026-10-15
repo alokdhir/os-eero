@@ -131,7 +131,9 @@ def _channel(mhz):
         return (mhz - 2407) // 5
     if 5150 <= mhz < 5900:
         return (mhz - 5000) // 5
-    if 5925 <= mhz <= 7125:
+    if mhz == 5935:                             # 6 GHz channel 2 sits below channel 1 (5955)
+        return 2
+    if 5955 <= mhz <= 7125:
         return (mhz - 5950) // 5
     return None
 
@@ -259,6 +261,8 @@ def network(net, thread=None, speedtests=None, units=None):
 
 
 MAC = re.compile(r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$')
+
+
 def max_hours():
     """The history kept, in hours (the "Keep history" setting)."""
     return config.history_days() * 24
@@ -335,10 +339,9 @@ def moves(hours, db_path=cache.PATH, now=None, limit=2000):
     now = int(now if now is not None else time.time())
     try:
         with cache.Store(db_path, readonly=True) as s:
-            events = s.client_events(now - int(hours * 3600), limit=limit * 4)
+            return s.client_events(now - int(hours * 3600), limit=limit, events=('roamed', 'band'))
     except Exception:
         return []
-    return [e for e in events if e['event'] in ('roamed', 'band')][:limit]
 
 
 BANDS = {'band_2_4GHz': '2.4 GHz', 'band_5GHz': '5 GHz', 'band_5GHz_full': '5 GHz', 'band_5GHz_low': '5 GHz (low)',

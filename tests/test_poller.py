@@ -162,6 +162,72 @@ class TestPoller(unittest.TestCase):
         self.assertEqual(self.store.fetched(), {})
         self.assertEqual(self.store.state()["status"], "needs_login")
         self.assertEqual(self.poller.step(62), "signed out")
+        self.assertIn("eero ended the session", self.store.state()["message"])   # not replaced a step later
+        self.sessions.save("tok2")
+        self.poller.step(63)
+        self.sessions.clear()
+        self.poller.step(64)
+        self.assertEqual(self.store.state()["message"], "Not signed in to eero")    # until the next sign-in
+
+    def test_new_sign_in_during_a_request_is_kept(self):
+        self.sessions.save("tok")
+        self.run_for(0, 10)
+
+        def units(net):                     # the user signs in again while this request is out
+            self.sessions.save("tok2")
+            raise api.SessionInvalid("error.session.invalid", 401)
+        self.made[0].units = units
+        self.assertEqual(self.poller.step(61), "signed out by eero")
+        self.assertEqual(self.sessions.load(), "tok2")
+        self.assertEqual(self.poller.step(62), "fetched networks")
+
+    def test_sign_out_drops_what_a_request_wrote_back(self):
+        self.sessions.save("tok")
+        self.run_for(0, 10)
+        self.sessions.clear()               # login.py signout: the session goes, the cache is emptied ...
+        self.store.forget()
+        self.store.put("units", [], 11)     # ... and a request already out writes its answer back
+        self.assertEqual(self.poller.step(12), "signed out")
+        self.assertEqual(self.store.fetched(), {})
+
+    def test_another_account_starts_history_afresh(self):
+        self.sessions.save("tok")
+        self.run_for(0, 10)
+        self.store.add_client_events([(5, "02:00:00:00:03:01", "a", "roamed", "x", "y", "5", "5")])
+        self.store.set_state(history_since=1)
+
+        def other_account(token):
+            c = self.make(token)
+            c.networks = lambda: [{"url": "/2.2/networks/2000002", "name": "Other"}]
+            return c
+        self.poller.make_client = other_account
+        self.sessions.save("tok-other")
+        self.assertEqual(self.poller.step(20), "fetched networks")
+        self.assertEqual(self.store.client_events(0), [])
+        self.assertNotIn("history_since", self.store.state())
+        self.assertEqual(self.store.state()["network"]["url"], "/2.2/networks/2000002")
+
+    def test_unexpected_answer_backs_off_and_says_so(self):
+        self.sessions.save("tok")
+        self.poller.step(0)
+        self.made[0].fail["units"] = [TypeError("list indices must be integers")]
+        self.assertEqual(self.poller.step(1), "error")
+        st = self.store.state()
+        self.assertEqual((st["status"], st["next_try"]), ("error", 1 + BACKOFF_MIN))
+        self.assertIn("TypeError", st["message"])
+        self.assertEqual(self.poller.step(2), "backing off")
+
+    def test_refused_network_list_is_an_error(self):
+        def refusing(token):
+            c = self.make(token)
+            c.fail["networks"] = [api.NotAvailable("error.access.denied", 403)]
+            return c
+        self.poller.make_client = refusing
+        self.sessions.save("tok")
+        self.assertEqual(self.poller.step(0), "networks not available")
+        st = self.store.state()
+        self.assertEqual(st["status"], "error")
+        self.assertIn("refused to list the networks", st["message"])
 
     def test_new_session_picked_up(self):
         self.assertEqual(self.poller.step(0), "signed out")

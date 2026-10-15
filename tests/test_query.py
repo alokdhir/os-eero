@@ -99,7 +99,8 @@ class TestTabs(unittest.TestCase):
         self.assertEqual((laptop["name"], laptop["unit"], laptop["band"], laptop["signal"], laptop["quality"]),
                          ("Work laptop", "Hallway", "5 GHz · ch 36", -52, 5))
         self.assertEqual(next(r for r in now if r["mac"] == "02:00:00:00:03:02")["band"], "2.4 GHz · ch 6")
-        self.assertEqual([query._channel(f) for f in (2412, 2484, 5745, 5975, 1234, None)], [1, 14, 149, 5, None, None])
+        self.assertEqual([query._channel(f) for f in (2412, 2484, 5745, 5935, 5955, 5975, 5940, 1234, None)],
+                         [1, 14, 149, 2, 1, 5, None, None, None])
         self.assertNotIn("02:00:00:00:03:03", [r["mac"] for r in now])            # wired: left out
         self.assertTrue(laptop["named"])
         self.assertTrue(next(r for r in now if r["mac"] == "02:00:00:00:03:02")["private_mac"])
@@ -173,6 +174,16 @@ class TestHistory(unittest.TestCase):
         self.assertIsNone(query.where_at(events, 1500, "Patio"))                  # after it left
         self.assertEqual(query.where_at([], 1000, "Patio"), "Patio")              # never moved
         self.assertIsNone(query.where_at([ev(1100, "connected", None, "Hallway")], 1000, "Patio"))
+
+    def test_moves_not_crowded_out(self):
+        """Joins and leaves don't push a roam out of Recent moves (it filters before it limits)."""
+        with tempfile.TemporaryDirectory() as d:
+            db = os.path.join(d, "eero.db")
+            with Store(db) as s:
+                s.add_client_events([(1000, "02:00:00:00:03:02", "p", "roamed", "Hallway", "Garage", "5", "5")]
+                                    + [(2000 + i, "02:00:00:00:03:01", "l", "connected" if i % 2 else "disconnected",
+                                        None, "Hallway", None, "5") for i in range(50)])
+            self.assertEqual([m["event"] for m in query.moves(24, db_path=db, now=5000, limit=10)], ["roamed"])
 
     def test_client_and_moves(self):
         with tempfile.TemporaryDirectory() as d:

@@ -126,13 +126,13 @@ class ReportController extends ApiControllerBase
     }
 
     /** One unit's page: details, radios, ports, its clients now, its history. */
-    public function unitAction($id = '', $hours = 24)
+    public function unitAction($id = '')
     {
         $id = rawurldecode($id);
         if (!preg_match('/^[0-9A-Za-z_-]{1,40}$/', $id)) {
             return ['error' => 'invalid unit'];
         }
-        $page = $this->query(['unit', $id, $this->hours($hours)]);
+        $page = $this->query(['unit', $id]);
         if (!empty($page['clients'])) {
             $this->decorate($page['clients']);
         }
@@ -152,9 +152,10 @@ class ReportController extends ApiControllerBase
         $rows = [];
         foreach ($events as $i => $e) {
             $c = $current[$e['mac']] ?? [];
-            $rows[] = $e + ['id' => $i, 'named' => $c['named'] ?? false, 'vendor_name' => $c['vendor_name'] ?? false,
-                            'type' => $c['type'] ?? '', 'maker' => $c['maker'] ?? '',
-                            'name' => $c['name'] ?? ($e['name'] ?? $e['mac'])];
+            /* array_merge, not +: the event's own (recorded) name must give way to the current one */
+            $rows[] = array_merge($e, ['id' => $i, 'named' => $c['named'] ?? false, 'vendor_name' => $c['vendor_name'] ?? false,
+                                       'type' => $c['type'] ?? '', 'maker' => $c['maker'] ?? '',
+                                       'name' => $c['name'] ?? ($e['name'] ?? $e['mac'])]);
         }
         $this->decorate($rows);
         return $rows;

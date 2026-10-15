@@ -62,6 +62,7 @@ class Poller:
         self.pruned = 0
         self._said = None
         self._history_since = None
+        self._ended = None                  # why eero ended the last session, shown until the next sign-in
 
     # --- status
 
@@ -77,20 +78,25 @@ class Poller:
         """The current client, or None when signed out (then the status says so)."""
         token = self.sessions.load()
         if token != self.token:
+            if self.token and not token:
+                self.store.forget()         # signed out: also drops a snapshot a request in flight wrote back
             self.token, self.net, self.last, self.skip_until = token, None, {}, {}
             self.failures, self.backoff_until = 0, 0
             self.client = self.make_client(token) if token else None
             if token:
+                self._ended = None
                 self._status('starting')
         if not token:
-            self._status('needs_login', 'Not signed in to eero')
+            self._status('needs_login', self._ended or 'Not signed in to eero')
         return self.client
 
     def _signed_out(self, e):
-        self.sessions.clear()
+        if self.sessions.load() == self.token:      # not a session the user started while this request ran
+            self.sessions.clear()
         self.store.forget()
         self.token, self.client, self.net = None, None, None
-        self._status('needs_login', 'eero ended the session (%s); sign in again' % e.code)
+        self._ended = 'eero ended the session (%s); sign in again' % e.code
+        self._status('needs_login', self._ended)
 
     # --- pacing
 
@@ -134,8 +140,17 @@ class Poller:
                 self.net = None
                 self._status('error', 'This eero account has no network')
                 return
+            known = self.store.state().get('network') or {}
+            if known.get('url') and known['url'] != doc[0]['url']:
+                self.store.forget_history()                      # another account's network: start afresh
+                self._history_since = None
             self.net = doc[0]                                    # one network per account for now
             self.store.set_state(network=self.net)
+
+    def _unexpected(self, e, now):
+        until = self._back_off(now)
+        self._status('error', 'Unexpected answer from eero (%s)' % type(e).__name__, next_try=until)
+        return 'error'
 
     def _mark_history_start(self, prev_at):
         """Remember when client history began (the first snapshot compared), once: the client page doesn't
@@ -182,17 +197,25 @@ class Poller:
             until = self._back_off(now, e.retry_after)
             self._status('rate_limited', 'eero asked us to slow down', next_try=until)
             return 'rate limited'
-        except api.NotAvailable:
+        except api.NotAvailable as e:
             self.skip_until[kind] = now + SKIP_UNAVAILABLE
             self.last[kind] = now
+            if kind == 'networks':                  # nothing else can be read: say so, don't stay "starting"
+                self._status('error', 'eero refused to list the networks of this account (%s)' % e.code,
+                             next_try=int(self.skip_until[kind]))
             return '%s not available' % kind
         except (api.TransportError, api.LoginFailed) as e:
             until = self._back_off(now)
             self._status('error', 'Cannot reach eero (%s)' % e.code, next_try=until)
             return 'error'
+        except Exception as e:                      # an answer in a shape we don't expect: back off, and say so
+            return self._unexpected(e, now)
         self.last[kind] = now
         self.failures = 0
-        self._keep(kind, doc, now)
+        try:
+            self._keep(kind, doc, now)
+        except Exception as e:
+            return self._unexpected(e, now)
         if self.net is not None:
             self._status('ok', None, last_ok=int(now), next_try=None)
         return 'fetched %s' % kind

@@ -88,6 +88,13 @@ class Store:
         with self.db:
             self.db.execute('DELETE FROM snapshots')
 
+    def forget_history(self):
+        """Drop the recorded history and where it began (a different eero network: none of it applies)."""
+        with self.db:
+            self.db.execute('DELETE FROM client_events')
+            self.db.execute('DELETE FROM unit_events')
+            self.db.execute("DELETE FROM state WHERE key IN ('history_since', 'network')")
+
     # --- daemon status
 
     def set_state(self, **values):
@@ -110,13 +117,17 @@ class Store:
             with self.db:
                 self.db.executemany('INSERT INTO unit_events VALUES (?, ?, ?, ?)', rows)
 
-    def client_events(self, since, mac=None, limit=1000):
+    def client_events(self, since, mac=None, limit=1000, events=None):
+        """Newest first. `events`: only these kinds (e.g. ('roamed', 'band')), chosen before the limit applies."""
         cols = ('ts', 'mac', 'name', 'event', 'from_unit', 'to_unit', 'band_from', 'band_to')
         sql = 'SELECT %s FROM client_events WHERE ts >= ?' % ', '.join(cols)
         args = [int(since)]
         if mac:
             sql += ' AND mac = ?'
             args.append(mac.lower())
+        if events:
+            sql += ' AND event IN (%s)' % ', '.join('?' * len(events))
+            args.extend(events)
         sql += ' ORDER BY ts DESC, rowid DESC LIMIT ?'
         args.append(int(limit))
         return [dict(zip(cols, r)) for r in self.db.execute(sql, args)]
@@ -130,7 +141,7 @@ class Store:
             'SELECT ts, unit, location, event FROM unit_events WHERE ts >= ? ORDER BY ts DESC, rowid DESC LIMIT ?',
             (int(since), int(limit)))]
 
-    def prune(self, now, days=30):
+    def prune(self, now, days):
         cut = int(now - days * 86400)
         with self.db:
             self.db.execute('DELETE FROM client_events WHERE ts < ?', (cut,))

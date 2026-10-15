@@ -80,6 +80,19 @@ class TestRename(unittest.TestCase):
         self.assertEqual(docs[2]["wireless_upstream_node"]["name"], "Front hall")    # Patio hangs off it
         self.assertEqual(self.logged, ['unit "Hallway" renamed to "Front hall" by admin'])
 
+    def test_rename_patches_the_newest_list(self):
+        c = FakeClient()
+        newer = fixture_doc("eeros")["data"]
+        newer[1]["state"] = "OFFLINE"
+
+        def set_location(unit, name):       # eerod saves a newer list while eero answers
+            self.store.put("units", newer, 2000)
+            return {"location": name}
+        c.set_location = set_location
+        self.rename("2000001", "Den", c)
+        fetched, docs = self.store.get("units")
+        self.assertEqual((fetched, docs[0]["location"], docs[1]["state"]), (2000, "Den", "OFFLINE"))
+
     def test_refused_before_calling_eero(self):
         c = FakeClient()
         for uid, name in (("2000001", ""), ("2000001", "x" * 41), ("2000001", "a\x01b"), ("../x", "Den"),

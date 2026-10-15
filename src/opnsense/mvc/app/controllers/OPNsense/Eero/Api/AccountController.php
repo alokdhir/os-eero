@@ -39,7 +39,7 @@ class AccountController extends ApiControllerBase
 {
     private function run($action, $params = [])
     {
-        $out = trim((new Backend())->configdpRun($action, $params));
+        $out = trim((new Backend())->configdpRun($action, $params) ?? '');
         $result = json_decode($out, true);
         return is_array($result) ? $result : ['result' => 'failed', 'message' => gettext('No answer from the eero service.')];
     }

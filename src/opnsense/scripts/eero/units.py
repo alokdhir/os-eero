@@ -92,8 +92,7 @@ def rename(client, sessions, store, uid, name, user='', log=syslog_line):
         return failed('Unknown unit.')
     if not name or len(name) > MAX_NAME or not readable(name):
         return failed('Enter a name of 1 to %d characters.' % MAX_NAME)
-    fetched, units = store.get('units')
-    unit = _unit(units, uid)
+    unit = _unit(store.get('units')[1], uid)
     if unit is None:
         return failed('eero does not know this unit.')
     if not _signed_in(client, sessions):
@@ -106,13 +105,17 @@ def rename(client, sessions, store, uid, name, user='', log=syslog_line):
         return failed(explain(e, 'eero refused the new name'))
     log('unit "%s" renamed to "%s" by %s' % (old, name, user or '?'))
     # the new name in the cache now (eerod's next poll replaces the whole list anyway), also where other
-    # units name it as the one they hang off (wireless_upstream_node.name is the upstream's location)
-    unit['location'] = name
-    for u in units:
-        up = u.get('wireless_upstream_node') if isinstance(u, dict) else None
-        if isinstance(up, dict) and old and up.get('name') == old:
-            up['name'] = name
-    store.put('units', units, fetched or int(time.time()))
+    # units name it as the one they hang off (wireless_upstream_node.name is the upstream's location). The
+    # list is read again: eerod may have saved a newer one while eero answered.
+    fetched, units = store.get('units')
+    unit = _unit(units, uid)
+    if unit is not None:
+        unit['location'] = name
+        for u in units:
+            up = u.get('wireless_upstream_node') if isinstance(u, dict) else None
+            if isinstance(up, dict) and old and up.get('name') == old:
+                up['name'] = name
+        store.put('units', units, fetched or int(time.time()))
     return {'result': 'ok', 'name': name}
 
 
