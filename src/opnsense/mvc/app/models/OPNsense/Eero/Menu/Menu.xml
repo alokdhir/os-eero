@@ -1,5 +1,5 @@
 <menu>
     <Reporting>
-        <Eero VisibleName="Eero" order="40" cssClass="fa fa-wifi fa-fw" url="/ui/eero/"/>
+        <Eero VisibleName="Eero" cssClass="fa fa-wifi fa-fw" url="/ui/eero/"/>
     </Reporting>
 </menu>
