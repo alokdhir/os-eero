@@ -61,11 +61,8 @@ export default class Eero extends BaseWidget {
         const dot = cls => `<i class="fa fa-circle ${cls}"></i>&nbsp; `;
         if (!d.running) return dot('text-muted') + `<a href="/ui/eero/#settings">${t.stopped}</a>`;
         switch (d.status) {
-            case 'ok': {
-                const s = Math.max(0, Math.round(Date.now() / 1000 - (d.last_ok || 0)));
-                return dot('text-success') + `${t.connected} <strong>${Eero.esc(d.network)}</strong> · ${t.updated} `
-                    + (s < 90 ? s + ' s' : Math.round(s / 60) + ' min') + ` ${t.ago}`;
-            }
+            case 'ok':
+                return dot('text-success') + `${t.connected} <strong>${Eero.esc(d.network)}</strong>`;
             case 'starting':
                 return dot('text-info') + Eero.esc(d.network || '');
             case 'needs_login':
@@ -83,10 +80,10 @@ export default class Eero extends BaseWidget {
             $('#eero-w-status').text(this.translations.nodata);
             return;
         }
-        $('#eero-w-status').html(this.status(d));          // its "updated … ago" changes every tick
-        if (!this.dataChanged('eero', {units: d.units, online: d.online, clients: d.clients})) {
+        if (!this.dataChanged('eero', d)) {
             return;
         }
+        $('#eero-w-status').html(this.status(d));
         const t = this.translations;
         if (!d.units) {
             $('#eero-w-counts').text(t.nodata);
