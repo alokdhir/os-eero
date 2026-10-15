@@ -31,8 +31,7 @@ namespace OPNsense\Eero;
 class IndexController extends \OPNsense\Base\IndexController
 {
     /**
-     * One page with tabs: Units, Clients, Network, Settings. The menu entry is a single
-     * top-level link, so everything lives on this page.
+     * One page with tabs: Units, Clients, Overview, Settings, under Reporting > Eero.
      */
     public function indexAction()
     {
