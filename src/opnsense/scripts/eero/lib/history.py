@@ -30,8 +30,15 @@ source.url, its band interface.frequency; a unit is online when its state is ONL
 """
 
 
+def readable(name):
+    """`name` unless it is binary junk: some devices send raw bytes as their DHCP host name (a dishwasher's
+    Wi-Fi module sends eight of them, control characters included) and eero passes them on as the name."""
+    return name if isinstance(name, str) and name.isprintable() and '�' not in name else None
+
+
 def client_name(d):
-    return d.get('nickname') or d.get('display_name') or d.get('hostname') or d.get('mac') or '?'
+    return (d.get('nickname') or readable(d.get('display_name')) or readable(d.get('hostname'))
+            or d.get('manufacturer') or d.get('mac') or '?')
 
 
 def _where(clients):

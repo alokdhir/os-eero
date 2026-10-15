@@ -68,7 +68,7 @@ class ReportController extends ApiControllerBase
         return (is_array($data) && ($data['version'] ?? null) === 1 && is_array($data['devices'] ?? null)) ? $data['devices'] : [];
     }
 
-    /** Loupe's icon, type, name (where eero has none) and vendor on client rows, in place. */
+    /** Loupe's icon, type, name (unless set in the eero app) and vendor on client rows, in place. */
     private function decorate(array &$rows)
     {
         $known = $this->loupeIdentities(array_values(array_unique(array_column($rows, 'mac'))));
@@ -78,12 +78,14 @@ class ReportController extends ApiControllerBase
             if (!empty($id['type'])) {
                 $row['type'] = (string)$id['type'];             // Loupe's type is more specific than eero's guess
             }
-            /* names, best first: set in the eero app; the device's own (eero's host name); Loupe's; Loupe's type.
-               Loupe's name only replaces eero's when eero has nothing but the Wi-Fi chip maker. */
-            if (empty($row['named']) && !empty($row['vendor_name'])) {
+            /* names, best first: set in the eero app; Loupe's (the router's DHCP entries, which the user names,
+               then what the device announces); the device's own (eero's host name); Loupe's type, where eero
+               has nothing but the Wi-Fi chip maker */
+            if (empty($row['named'])) {
                 if (!empty($id['name'])) {
                     $row['name'] = (string)$id['name'];
-                } elseif (!empty($id['type'])) {
+                    $row['vendor_name'] = false;
+                } elseif (!empty($row['vendor_name']) && !empty($id['type'])) {
                     $row['name'] = (string)$id['type'];         // "Ceiling fan (fanSync)", not the chip maker
                 }
             }

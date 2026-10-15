@@ -30,6 +30,7 @@ import json
 
 from helpers import fixture_doc
 import query
+from lib import history
 from lib.session import SessionStore
 from lib.store import Store
 
@@ -116,6 +117,16 @@ class TestTabs(unittest.TestCase):
         self.assertTrue({r["mac"]: r for r in query.clients(docs)}[receiver["mac"]]["vendor_name"])
         docs[0].update(nickname=None, hostname="Mac", display_name="Mac")       # Apple's placeholder
         self.assertTrue({r["mac"]: r for r in query.clients(docs)}[docs[0]["mac"]]["vendor_name"])
+
+    def test_binary_host_name(self):
+        """A device that sends raw bytes as its DHCP host name: eero's name is junk, so it counts as no name."""
+        docs = fixture_doc("devices")["data"]
+        junk = " &\t0�\x01\x10\x03"
+        docs[1].update(nickname=None, hostname=junk, display_name=junk, manufacturer="Example Appliance Co.")
+        row = {r["mac"]: r for r in query.clients(docs)}[docs[1]["mac"]]
+        self.assertEqual(row["name"], "Example Appliance Co.")
+        self.assertTrue(row["vendor_name"])
+        self.assertEqual(history.client_name(docs[1]), "Example Appliance Co.")
 
     def test_names_passed_through_raw(self):
         """Escaping is the page's job (every text column has an escaping formatter); the data stays exact."""

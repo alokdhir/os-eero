@@ -42,6 +42,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from lib import store as cache                 # noqa: E402
+from lib.history import client_name, readable  # noqa: E402
 from lib.session import SessionStore           # noqa: E402
 
 PIDFILE = '/var/run/eero.pid'
@@ -139,10 +140,10 @@ PLACEHOLDERS = {'mac', 'iphone', 'ipad', 'watch', 'apple-watch', 'ipod', 'localh
 
 
 def _no_name(d):
-    shown = (d.get('display_name') or '').strip()
-    if shown.lower() in PLACEHOLDERS:
+    shown = (readable(d.get('display_name')) or '').strip()
+    if not shown or shown.lower() in PLACEHOLDERS:
         return True
-    if not d.get('hostname') and shown == (d.get('manufacturer') or '').strip():
+    if not readable(d.get('hostname')) and shown == (d.get('manufacturer') or '').strip():
         return True
     return re.sub(r'[^0-9a-f]', '', shown.lower()) == re.sub(r'[^0-9a-f]', '', d['mac'].lower())
 
@@ -162,7 +163,7 @@ def clients(docs, include_all=False):
         channel = _channel(conn.get('frequency'))
         rows.append({
             'mac': d['mac'].lower(),
-            'name': d.get('nickname') or d.get('display_name') or d.get('hostname') or d['mac'],
+            'name': client_name(d),
             'named': bool(d.get('nickname')),           # named in the eero app (else eero's guess)
             # no real name: eero shows the MAC vendor ("Shenzhen Phaten Tech. LTD") or the device calls itself
             # by its MAC ("0005CD000001")
