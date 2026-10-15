@@ -187,7 +187,7 @@ class TestHistory(unittest.TestCase):
 
     def test_moves_follow_unit_ids(self):
         """Moves are keyed on unit ids: a renamed unit keeps its moves under its new name, and two units with the
-        same name don't share them. Rows from before ids were kept still match by name."""
+        same name don't share them."""
         with tempfile.TemporaryDirectory() as d:
             db = os.path.join(d, "eero.db")
             units = fixture_doc("eeros")["data"]
@@ -200,14 +200,14 @@ class TestHistory(unittest.TestCase):
                 s.add_client_events([
                     (2000, "02:00:00:00:03:02", "p", "roamed", "Hallway", "Garage", "5", "2.4", "2000001", "2000002"),
                     (3000, "02:00:00:00:03:05", "r", "roamed", "Garage", "Patio", "5", "5", "2000002", "2000003"),
-                    (3500, "02:00:00:00:03:05", "r", "band", "Patio", "Patio", "5", "2.4")])     # no ids: old row
+                    (3500, "02:00:00:00:03:05", "r", "band", "Patio", "Patio", "5", "2.4")])     # no ids
             shop = query.unit("2000002", db_path=db, now=5000)
             self.assertEqual([(m["from_unit"], m["to_unit"]) for m in shop["moves"]],
                              [("Shop", "Hallway"), ("Hallway", "Shop")])
             self.assertEqual([m["mac"] for m in query.unit("2000001", db_path=db, now=5000)["moves"]],
                              ["02:00:00:00:03:02"])                         # not Patio's moves, though named alike
             self.assertEqual([m["mac"] for m in query.unit("2000003", db_path=db, now=5000)["moves"]],
-                             ["02:00:00:00:03:05"])                         # the old row matches no unit by name now
+                             ["02:00:00:00:03:05"])                         # a row without ids matches no unit
             page = query.client("02:00:00:00:03:02", 24, db_path=db, now=5000)
             self.assertEqual([t["unit"] for t in page["time"]], ["Shop", "Hallway"])
             self.assertEqual(query.moves(24, db_path=db, now=5000)[-1]["to_unit"], "Shop")
@@ -218,9 +218,12 @@ class TestHistory(unittest.TestCase):
             with Store(db) as s:
                 s.put("clients", fixture_doc("devices")["data"], 5000)
                 s.set_state(history_since=1000)
-                s.add_client_events([(2000, "02:00:00:00:03:02", "phone-1", "roamed", "Hallway", "Garage", "5", "2.4"),
-                                     (3000, "02:00:00:00:03:01", "laptop-1", "band", "Hallway", "Hallway", "5", "2.4"),
-                                     (4000, "02:00:00:00:03:01", "laptop-1", "disconnected", "Hallway", None, "2.4", None)])
+                s.add_client_events([(2000, "02:00:00:00:03:02", "phone-1", "roamed", "Hallway", "Garage", "5", "2.4",
+                                      "2000001", "2000002"),
+                                     (3000, "02:00:00:00:03:01", "laptop-1", "band", "Hallway", "Hallway", "5", "2.4",
+                                      "2000001", "2000001"),
+                                     (4000, "02:00:00:00:03:01", "laptop-1", "disconnected", "Hallway", None, "2.4", None,
+                                      "2000001", None)])
             page = query.client("02:00:00:00:03:02", 24, db_path=db, now=5000)
             self.assertEqual(page["client"]["name"], "phone-1")
             self.assertEqual(page["since"], 1000)                                  # not before history began
@@ -241,8 +244,10 @@ class TestHistory(unittest.TestCase):
                 s.add_unit_events([(1500, "/2.2/eeros/2000002", "Garage", "offline"),
                                    (1600, "/2.2/eeros/2000002", "Garage", "online"),
                                    (1700, "/2.2/eeros/2000001", "Hallway", "offline")])
-                s.add_client_events([(2000, "02:00:00:00:03:02", "phone-1", "roamed", "Hallway", "Garage", "5", "2.4"),
-                                     (3000, "02:00:00:00:03:01", "laptop-1", "band", "Hallway", "Hallway", "5", "2.4")])
+                s.add_client_events([(2000, "02:00:00:00:03:02", "phone-1", "roamed", "Hallway", "Garage", "5", "2.4",
+                                      "2000001", "2000002"),
+                                     (3000, "02:00:00:00:03:01", "laptop-1", "band", "Hallway", "Hallway", "5", "2.4",
+                                      "2000001", "2000001")])
             page = query.unit("2000002", db_path=db, now=5000)
             u = page["unit"]
             self.assertEqual((u["name"], u["serial"], u["power"]), ("Garage", "GGC0000000002", "PoE"))

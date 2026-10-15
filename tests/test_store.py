@@ -22,6 +22,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import json
 import os
 import sqlite3
 import stat
@@ -29,6 +30,7 @@ import tempfile
 import unittest
 
 import helpers  # noqa: F401
+from helpers import fixture_doc
 from lib.store import Store
 
 
@@ -62,17 +64,21 @@ class TestStore(unittest.TestCase):
                                               "network": {"name": "Example"}})
 
     def test_old_table_gets_unit_ids(self):
-        """A database from before moves kept unit ids: the columns are added, old rows keep only names."""
+        """A 1.0 database: the columns are added and filled in from the names of the units cached now (a name no
+        unit has now gets no id)."""
         path = os.path.join(self._tmp.name, "old.db")
         db = sqlite3.connect(path)
+        db.execute("CREATE TABLE snapshots (kind TEXT PRIMARY KEY, fetched_at INTEGER NOT NULL, doc TEXT NOT NULL)")
+        db.execute("INSERT INTO snapshots VALUES ('units', 1, ?)", (json.dumps(fixture_doc("eeros")["data"]),))
         db.execute("CREATE TABLE client_events (ts INTEGER NOT NULL, mac TEXT NOT NULL, name TEXT, "
                    "event TEXT NOT NULL, from_unit TEXT, to_unit TEXT, band_from TEXT, band_to TEXT)")
-        db.execute("INSERT INTO client_events VALUES (1, '02:00:00:00:03:01', 'a', 'roamed', 'x', 'y', '5', '5')")
+        db.execute("INSERT INTO client_events VALUES (1, '02:00:00:00:03:01', 'a', 'roamed', 'Hallway', 'Gone', '5', '5')")
         db.commit()
         db.close()
         with Store(path) as s:
             s.add_client_events([(2, "02:00:00:00:03:01", "a", "roamed", "y", "x", "5", "5", "2", "1")])
-            self.assertEqual([(e["from_id"], e["to_id"]) for e in s.client_events(0)], [("2", "1"), (None, None)])
+            self.assertEqual([(e["from_id"], e["to_id"]) for e in s.client_events(0)],
+                             [("2", "1"), ("2000001", None)])
         with Store(path) as s:                                  # opening it again changes nothing
             self.assertEqual(len(s.client_events(0)), 2)
 

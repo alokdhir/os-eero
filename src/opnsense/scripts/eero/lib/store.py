@@ -62,12 +62,23 @@ class Store:
             self._add_unit_ids()
 
     def _add_unit_ids(self):
-        """Tables from before moves kept unit ids get the two columns; their rows keep only the unit names."""
+        """Tables from before moves kept unit ids (1.0) get the two columns, filled in from the unit names: each
+        name maps to the unit that has it in the cached unit list (a unit renamed since keeps no id)."""
         cols = {r[1] for r in self.db.execute('PRAGMA table_info(client_events)')}
-        if 'from_id' not in cols:
-            with self.db:
-                self.db.execute('ALTER TABLE client_events ADD COLUMN from_id TEXT')
-                self.db.execute('ALTER TABLE client_events ADD COLUMN to_id TEXT')
+        if 'from_id' in cols:
+            return
+        row = self.db.execute("SELECT doc FROM snapshots WHERE kind = 'units'").fetchone()
+        ids = {}
+        for u in json.loads(row[0]) if row else []:
+            if isinstance(u, dict) and u.get('location') and u.get('url'):
+                ids[u['location']] = u['url'].rstrip('/').rsplit('/', 1)[-1]
+        with self.db:
+            self.db.execute('ALTER TABLE client_events ADD COLUMN from_id TEXT')
+            self.db.execute('ALTER TABLE client_events ADD COLUMN to_id TEXT')
+            self.db.executemany('UPDATE client_events SET from_id = ? WHERE from_unit = ?',
+                                [(i, n) for n, i in ids.items()])
+            self.db.executemany('UPDATE client_events SET to_id = ? WHERE to_unit = ?',
+                                [(i, n) for n, i in ids.items()])
 
     def close(self):
         self.db.close()

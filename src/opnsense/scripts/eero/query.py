@@ -282,23 +282,21 @@ def _unit_names(udocs):
 
 
 def _named(events, names):
-    """Moves keyed on unit ids (from_key, to_key) and shown with each unit's current name. Rows recorded before
-    moves kept ids have only the name then: their key is 'name:' + that name."""
+    """Moves shown with each unit's current name, looked up by unit id (a unit since removed keeps the name
+    recorded with the move)."""
     for e in events:
         for side in ('from', 'to'):
-            uid, name = e.get(side + '_id'), e.get(side + '_unit')
-            e[side + '_key'] = uid or ('name:%s' % name if name else None)
-            if uid in names:
-                e[side + '_unit'] = names[uid]
+            if e.get(side + '_id') in names:
+                e[side + '_unit'] = names[e[side + '_id']]
     return events
 
 
 def _to(e):
-    return e.get('to_key', e.get('to_unit'))
+    return e.get('to_id', e.get('to_unit'))
 
 
 def _from(e):
-    return e.get('from_key', e.get('from_unit'))
+    return e.get('from_id', e.get('from_unit'))
 
 
 def time_on_units(events, start, now, location):
@@ -356,8 +354,8 @@ def client(mac, hours, db_path=cache.PATH, now=None):
     labels = dict(names)
     for e in events:
         for side in ('from', 'to'):
-            if e[side + '_key']:
-                labels.setdefault(e[side + '_key'], e[side + '_unit'])
+            if e[side + '_id']:
+                labels.setdefault(e[side + '_id'], e[side + '_unit'])
     if row and row['unit_id']:
         labels.setdefault(row['unit_id'], row['unit'])
     return {
@@ -475,8 +473,7 @@ def unit(uid, db_path=cache.PATH, now=None, keep_hours=None):
         'days': keep_hours // 24,
         'history_since': since,
         'events': [e for e in uevents if e['unit'] == url],
-        'moves': [e for e in _named(cevents, _unit_names(udocs)) if uid in (e['from_id'], e['to_id'])
-                  or (e['from_id'] is None and e['to_id'] is None and loc in (e['from_unit'], e['to_unit']))][:500],
+        'moves': [e for e in _named(cevents, _unit_names(udocs)) if uid in (e['from_id'], e['to_id'])][:500],
     }
 
 

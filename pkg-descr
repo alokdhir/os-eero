@@ -28,7 +28,7 @@ Plugin Changelog
   account"; the "eero" privilege is now for looking only
 * Client moves are recorded with the units' ids, so renaming a unit, or two
   units with the same name, no longer mixes up history; moves show each unit's
-  current name (moves recorded before 1.1 keep the names they had)
+  current name (moves recorded by 1.0 get ids from the unit names when updating)
 * Recent moves and unit pages show clients' current names; Recent moves no
   longer misses roams on a busy network
 * The status line keeps the reason eero ended a session until you sign in
