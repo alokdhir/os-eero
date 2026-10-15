@@ -3,27 +3,48 @@
 See what your eero mesh Wi-Fi is doing from the OPNsense GUI: every eero unit, every client and
 which unit it's on, and the network's settings. Read-only: changes stay in the eero app.
 
-**Status: early development.** Sign-in, polling, the Units, Clients and Network tabs, and recording roaming history work; viewing the history is next.
+**Status: early development.** Sign-in, polling, the Units, Clients and Network tabs, and client history work; units' online/offline history and a dashboard widget are next.
 
 ## What it shows
 
 - **Units**: each eero unit: online or not, model, firmware, IP, wired or wireless backhaul
   (and which unit it hangs off), mesh quality, clients, uptime, radios and ports.
-- **Clients**: every Wi-Fi client: name, which eero it's on, band, signal, link rate, address,
-  and when it was last seen. Wired clients are left out: in bridge mode eero attributes devices on
+- **Clients**: every Wi-Fi client: name, which eero it's on, band and channel, signal, connection
+  quality (eero's 0-5 bars), address, and when it was last seen. Each client has its own page with
+  the time it spent on each eero and its moves between them; *Recent moves* lists the latest moves
+  across all clients. Wired clients are left out: in bridge mode eero attributes devices on
   your switches to the nearest unit, so its wired list isn't reliable.
 - **Network**: the eero network's settings and health: bridge or router mode, DHCP and DNS, band
   steering, WPA3, guest network, updates, last speed test.
 
-With [Loupe](https://github.com/alokdhir/os-loupe) installed, clients also get Loupe's device type
-and icon (and its name for devices eero only knows by their Wi-Fi chip's maker). Without it, the
-plugin shows what eero knows.
+## Better with Loupe
+
+[Loupe](https://github.com/alokdhir/os-loupe) is a companion plugin for OPNsense: it shows which
+device on your network talked to which site or service, how much data moved each way, and when.
+It identifies each device from what the device says about itself (its Bonjour model, host name,
+DHCP fingerprint, MAC vendor and the services it uses), so you see *Apple TV 4K*, *Smart plug* or
+*Window shade* instead of an IP address or a chip maker.
+
+eero only knows many devices by the maker of their Wi-Fi chip ("Tuya Smart Inc.", "Espressif
+Inc."), so a house full of smart plugs, shades and fans shows up as rows of identical names. With
+Loupe installed, this plugin uses what Loupe knows:
+
+- **Names**: Loupe's name for each client: the name you gave it in the router's DHCP settings or in
+  Loupe, or else what the device announces. A name set in the eero app still comes first.
+- **Types and icons**: Loupe's device type and icon, which are more specific than eero's
+  (often just "generic").
+- **Makers**: the product's maker rather than its Wi-Fi module's ("Fanimation", not "Shenzhen
+  Phaten Tech.").
+
+Neither plugin needs the other. Without Loupe, this plugin shows what eero knows. Loupe works with
+any network, eero or not, and does far more on its own: per-device traffic by service and site,
+history over hours to a year, and searching which devices talked to a service or address.
 
 ## How it works
 
 A small service on the router polls eero's cloud API, the same one the eero app uses, at a
-gentle, rate-limited pace, and keeps the results in SQLite under `/var/db/eero/`. The GUI and
-widget only read that copy, so opening a page never calls eero.
+gentle, rate-limited pace, and keeps the results in SQLite under `/var/db/eero/`. The GUI only
+reads that copy, so opening a page never calls eero.
 
 You log in once from the GUI: enter your eero account's email or phone, then the code eero
 sends. The session is stored on the router in `/var/db/eero/` (readable by root only), not in
