@@ -60,6 +60,7 @@ def main():
 
     transport = api.RequestsTransport()
     store = Store()
+    store.set_state(status='starting', message=None)    # not the last run's "stopped" until the first step
     poller = Poller(store, SessionStore(), lambda token: api.Client(transport, token))
     syslog.syslog(syslog.LOG_NOTICE, 'started')
     condition = None                            # log changes of condition, not every fetch
