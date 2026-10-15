@@ -3,8 +3,6 @@
 See what your eero mesh Wi-Fi is doing from the OPNsense GUI: every eero unit, every client and
 which unit it's on, and the network's settings. Read-only: changes stay in the eero app.
 
-**Status: early development.** Sign-in, polling, the Units, Clients and Network tabs, and client history work; units' online/offline history and a dashboard widget are next.
-
 ## What it shows
 
 - **Units**: each eero unit: online or not, model, firmware, IP, wired or wireless backhaul
