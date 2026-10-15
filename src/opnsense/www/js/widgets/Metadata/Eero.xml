@@ -6,7 +6,7 @@
             <endpoint>/api/eero/report/widget</endpoint>
         </endpoints>
         <translations>
-            <title>eero</title>
+            <title>Eero</title>
             <connected>Connected to</connected>
             <updated>updated</updated>
             <ago>ago</ago>
