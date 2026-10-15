@@ -205,11 +205,11 @@ class TestHistory(unittest.TestCase):
                                    (1700, "/2.2/eeros/2000001", "Hallway", "offline")])
                 s.add_client_events([(2000, "02:00:00:00:03:02", "phone-1", "roamed", "Hallway", "Garage", "5", "2.4"),
                                      (3000, "02:00:00:00:03:01", "laptop-1", "band", "Hallway", "Hallway", "5", "2.4")])
-            page = query.unit("2000002", 24, db_path=db, now=5000)
+            page = query.unit("2000002", db_path=db, now=5000)
             u = page["unit"]
             self.assertEqual((u["name"], u["serial"], u["power"]), ("Garage", "GGC0000000002", "PoE"))
             self.assertEqual([r["band"] for r in page["radios"]], ["2.4 GHz", "5 GHz (low)", "5 GHz (high)"])
-            self.assertEqual(page["radios"][0]["busy"], 12)
+            self.assertEqual((page["radios"][0]["channel"], page["radios"][0]["width"]), (6, 20))
             port = page["ports"][0]
             self.assertEqual((port["port"], port["link"], port["speed"], port["uplink"]), ("1", True, "1 Gbps", True))
             # the eero on the other end by its address, a switch port, a named device; not the unit itself
@@ -217,12 +217,12 @@ class TestHistory(unittest.TestCase):
             self.assertEqual([c["mac"] for c in page["clients"]], ["02:00:00:00:03:02"])
             self.assertEqual([e["event"] for e in page["events"]], ["online", "offline"])        # newest first
             self.assertEqual([m["mac"] for m in page["moves"]], ["02:00:00:00:03:02"])
-            later = query.unit("2000002", 720, db_path=db, now=5000 + 2 * 86400)
+            later = query.unit("2000002", db_path=db, now=5000 + 2 * 86400, keep_hours=720)
             self.assertEqual((len(later["events"]), later["moves"]), (2, []))          # moves: the last day only
-            self.assertEqual(query.unit("2000003", 24, db_path=db, now=5000)["ports"][0]["speed"], "")  # no link
-            self.assertEqual(query.unit("2000001", 24, db_path=db, now=5000)["unit"]["power"], "Power adapter")
-            self.assertIn("error", query.unit("9999999", 24, db_path=db, now=5000))
-            self.assertIn("error", query.unit("../x", 24, db_path=db, now=5000))
+            self.assertEqual(query.unit("2000003", db_path=db, now=5000)["ports"][0]["speed"], "")  # no link
+            self.assertEqual(query.unit("2000001", db_path=db, now=5000)["unit"]["power"], "Power adapter")
+            self.assertIn("error", query.unit("9999999", db_path=db, now=5000))
+            self.assertIn("error", query.unit("../x", db_path=db, now=5000))
 
     def test_speed(self):
         self.assertEqual([query._speed(s) for s in ("P1000", "P2500", "P100", "P0", None, "x")],
@@ -238,7 +238,7 @@ class TestHistory(unittest.TestCase):
 
     def test_hours_arg(self):
         self.assertEqual(query.hours_arg("168"), 168)
-        self.assertEqual(query.hours_arg("99999"), query.MAX_HOURS)
+        self.assertEqual(query.hours_arg("99999"), query.max_hours())
         self.assertEqual(query.hours_arg("x"), 24)
 
 

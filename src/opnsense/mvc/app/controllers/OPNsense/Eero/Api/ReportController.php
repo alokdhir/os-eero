@@ -98,7 +98,7 @@ class ReportController extends ApiControllerBase
     private function hours($hours)
     {
         $hours = (float)$hours;
-        return ($hours >= 1 && $hours <= 720) ? (string)$hours : '24';
+        return ($hours >= 1 && $hours <= 2160) ? (string)$hours : '24';     // query.py limits it to the history kept
     }
 
     public function searchClientsAction()

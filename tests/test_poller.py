@@ -91,6 +91,15 @@ class TestPoller(unittest.TestCase):
     def run_for(self, start, seconds):
         return [self.poller.step(start + t) for t in range(seconds)]
 
+    def test_prunes_to_the_setting(self):
+        day = 86400
+        now = 100 * day
+        self.store.add_client_events([(now - 3 * day, "02:00:00:00:03:01", "a", "roamed", "x", "y", "5", "5"),
+                                      (now - 1 * day, "02:00:00:00:03:01", "a", "roamed", "y", "x", "5", "5")])
+        self.poller.keep_days = lambda: 2
+        self.poller.step(now)
+        self.assertEqual([e["ts"] for e in self.store.client_events(0)], [now - day])
+
     def test_signed_out_does_nothing(self):
         self.assertEqual(self.poller.step(0), "signed out")
         self.assertEqual(self.store.state()["status"], "needs_login")

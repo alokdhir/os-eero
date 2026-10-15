@@ -30,6 +30,7 @@ import random
 import time
 
 from . import client as api
+from . import config
 from .history import client_events, unit_events
 
 # seconds between fetches of each kind, in the order they are fetched (see docs/API.md)
@@ -41,12 +42,12 @@ BACKOFF_MAX = 1800
 SKIP_UNAVAILABLE = 86400     # a kind eero refuses (403/404) is not asked for again for a day
 EVENT_GAP = 600              # no events across a gap longer than this (the daemon was stopped)
 PRUNE_EVERY = 3600
-KEEP_DAYS = 30
 
 
 class Poller:
-    def __init__(self, store, sessions, make_client, rand=random.random):
+    def __init__(self, store, sessions, make_client, rand=random.random, keep_days=config.history_days):
         self.store = store
+        self.keep_days = keep_days          # () -> days of history to keep (the setting, read at each prune)
         self.sessions = sessions
         self.make_client = make_client      # token -> api.Client
         self.rand = rand
@@ -160,7 +161,7 @@ class Poller:
         """Do at most one request. Returns what happened (for tests and the log)."""
         now = time.time() if now is None else now
         if now - self.pruned >= PRUNE_EVERY:
-            self.store.prune(now, KEEP_DAYS)
+            self.store.prune(now, self.keep_days())
             self.pruned = now
         if self._session(now) is None:
             return 'signed out'

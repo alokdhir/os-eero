@@ -1,6 +1,6 @@
 <model>
     <mount>//OPNsense/Eero</mount>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <description>eero mesh Wi-Fi status</description>
     <items>
         <general>
@@ -8,6 +8,13 @@
                 <Default>0</Default>
                 <Required>Y</Required>
             </enabled>
+            <history_days type="IntegerField">
+                <Default>7</Default>
+                <MinimumValue>1</MinimumValue>
+                <MaximumValue>90</MaximumValue>
+                <Required>Y</Required>
+                <ValidationMessage>Enter a number of days from 1 to 90.</ValidationMessage>
+            </history_days>
         </general>
     </items>
 </model>

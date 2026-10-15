@@ -7,7 +7,7 @@ which unit it's on, and the network's settings.
 
 - **Units**: each eero unit: online or not, model, IP, wired or wireless backhaul (and which
   unit it hangs off), mesh quality, clients and uptime. Each unit has its own page: the clients on
-  it now, its radios (channel, width, how busy), its ports and what is seen on them, firmware,
+  it now, its radios (channel and width), its ports and what is seen on them, firmware,
   power and serial number, and when it went offline or came back. Rename a unit with the pencil
   next to its name.
 - **Clients**: every Wi-Fi client: name, which unit it's on, band and channel, signal, connection
@@ -44,7 +44,9 @@ history over hours to a year, and searching which devices talked to a service or
 
 A small service on the router polls eero's cloud API, the same one the eero app uses, at a
 gentle, rate-limited pace, and keeps the results in SQLite under `/var/db/eero/`. The GUI only
-reads that copy, so opening a page never calls eero.
+reads that copy, so opening a page never calls eero. From consecutive copies it records client
+moves and units going offline, coming back or becoming primary; *Keep history* in Settings sets how
+long (7 days unless changed).
 
 You log in once from the GUI: enter your eero account's email or phone, then the code eero
 sends. The session is stored on the router in `/var/db/eero/` (readable by root only), not in

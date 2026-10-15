@@ -1,1 +1,2 @@
 rc.conf.d:/etc/rc.conf.d/eero
+eero.json:/usr/local/etc/eero.json

@@ -42,6 +42,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from lib import store as cache                 # noqa: E402
+from lib import config                         # noqa: E402
 from lib.history import client_name, readable  # noqa: E402
 from lib.session import SessionStore           # noqa: E402
 
@@ -258,7 +259,9 @@ def network(net, thread=None, speedtests=None, units=None):
 
 
 MAC = re.compile(r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$')
-MAX_HOURS = 24 * 30                             # history is kept for 30 days
+def max_hours():
+    """The history kept, in hours (the "Keep history" setting)."""
+    return config.history_days() * 24
 
 
 def hours_arg(text):
@@ -266,7 +269,7 @@ def hours_arg(text):
         hours = float(text)
     except (TypeError, ValueError):
         hours = 24
-    return min(max(hours, 1), MAX_HOURS)
+    return min(max(hours, 1), max_hours())
 
 
 def time_on_units(events, start, now, location):
@@ -307,7 +310,7 @@ def client(mac, hours, db_path=cache.PATH, now=None):
         with cache.Store(db_path, readonly=True) as s:
             docs = s.get('clients')[1]
             since = s.state().get('history_since')
-            events = list(reversed(s.client_events(now - MAX_HOURS * 3600, mac=mac, limit=100000)))
+            events = list(reversed(s.client_events(now - max_hours() * 3600, mac=mac, limit=100000)))
     except Exception:
         docs, since, events = None, None, []
     row = next((r for r in clients(docs, include_all=True) if r['mac'] == mac), None)
@@ -374,14 +377,15 @@ def _neighbour(n, by_ip):
 MOVES_HOURS = 24                                # a unit's client moves: the last day only (a busy unit has hundreds)
 
 
-def unit(uid, hours, db_path=cache.PATH, now=None):
-    """One unit's page: its details, radios, ports, clients on it now, and its history: status changes over
-    `hours`, client moves over the last day."""
+def unit(uid, db_path=cache.PATH, now=None, keep_hours=None):
+    """One unit's page: its details, radios, ports, clients on it now, and its history: status changes over all
+    the history kept, client moves over the last day."""
     uid = str(uid or '').strip()
     if not re.match(r'^[0-9A-Za-z_-]{1,40}$', uid):
         return {'error': 'invalid unit'}
     now = int(now if now is not None else time.time())
-    start = now - int(hours * 3600)
+    keep_hours = keep_hours or max_hours()
+    start = now - int(keep_hours * 3600)
     try:
         with cache.Store(db_path, readonly=True) as s:
             udocs, cdocs = s.get('units')[1], s.get('clients')[1]
@@ -408,7 +412,7 @@ def unit(uid, hours, db_path=cache.PATH, now=None):
                          if kv[0] in BANDS else len(BANDS)):
         if isinstance(r, dict):
             radios.append({'band': BANDS.get(key, key), 'channel': r.get('channel'), 'width': r.get('channel_width'),
-                           'busy': r.get('channel_utilization'), 'clients': r.get('client_count'),
+                           'clients': r.get('client_count'),
                            'tx_power': r.get('tx_power')})
     by_ip = {d.get('ip_address'): d.get('location') for d in udocs if isinstance(d, dict) and d.get('ip_address')}
     ports = []
@@ -426,7 +430,7 @@ def unit(uid, hours, db_path=cache.PATH, now=None):
         'radios': radios,
         'ports': ports,
         'clients': [c for c in clients(cdocs) if c['unit_id'] == uid],
-        'hours': hours,
+        'days': keep_hours // 24,
         'history_since': since,
         'events': [e for e in uevents if e['unit'] == url],
         'moves': [e for e in cevents if e['from_unit'] == loc or e['to_unit'] == loc][:500],
@@ -448,7 +452,7 @@ def main(argv):
     elif what == 'moves':
         result = moves(hours_arg(argv[2] if len(argv) > 2 else 24))
     elif what == 'unit':
-        result = unit(argv[2] if len(argv) > 2 else '', hours_arg(argv[3] if len(argv) > 3 else 24))
+        result = unit(argv[2] if len(argv) > 2 else '')
     else:
         result = {'error': 'unknown query'}
     print(json.dumps(result))

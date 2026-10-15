@@ -37,6 +37,10 @@ class IndexController extends \OPNsense\Base\IndexController
     public function indexAction()
     {
         $this->view->formSettings = $this->getForm('settings');
+        /* period buttons: 1 day, 7 days, 30 days, as far as the "Keep history" setting goes, and that setting itself */
+        $keep = max(1, min(90, (int)(string)(new \OPNsense\Eero\Eero())->general->history_days));
+        $periods = array_values(array_unique(array_merge(array_filter([1, 7, 30], fn($d) => $d < $keep), [$keep])));
+        $this->view->periods = $periods;
         /* the rename pencil only for users with the "eero: rename units" privilege */
         $this->view->canRename = (new \OPNsense\Core\ACL())->isPageAccessible($this->getUserName(), '/api/eero/units/rename');
         $this->view->pick('OPNsense/Eero/index');

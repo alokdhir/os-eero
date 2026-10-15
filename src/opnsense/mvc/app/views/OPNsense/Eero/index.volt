@@ -233,6 +233,10 @@ POSSIBILITY OF SUCH DAMAGE.
         function ghz(band) {
             return band ? plain(band) + ' GHz' : '';
         }
+        function lastDays(days) {
+            days = Math.round(days);
+            return days === 1 ? '{{ lang._('last 24 hours') }}' : '{{ lang._('last') }} ' + days + ' {{ lang._('days') }}';
+        }
         function duration(sec) {
             const h = Math.floor(sec / 3600), m = Math.round(sec % 3600 / 60);
             return h ? h + 'h ' + m + 'm' : m + 'm';
@@ -302,13 +306,13 @@ POSSIBILITY OF SUCH DAMAGE.
                 });
                 const since = page.since > Date.now() / 1000 - page.hours * 3600 + 120
                     ? ' ({{ lang._('history starts') }} ' + when(page.since) + ')' : '';
-                $d.append($('<h4/>').text('{{ lang._('Time on each unit') }}' + since), $bar, $legend);
+                $d.append($('<h4/>').text('{{ lang._('Time on each unit') }}, ' + lastDays(page.hours / 24) + since), $bar, $legend);
 
                 const $t = $('<tbody/>');
                 page.events.forEach(function (e) {
                     $t.append($('<tr/>').append($('<td style="width: 9em"/>').text(when(e.ts)), $('<td/>').html(moveText(e))));
                 });
-                $d.append($('<h4/>').text('{{ lang._('Moves') }}'), page.events.length
+                $d.append($('<h4/>').text('{{ lang._('Moves') }}, ' + lastDays(page.hours / 24)), page.events.length
                     ? $('<table class="table table-condensed table-striped"/>').append($t)
                     : $('<p class="text-muted"/>').text('{{ lang._('No moves in this period.') }}'));
             });
@@ -329,8 +333,7 @@ POSSIBILITY OF SUCH DAMAGE.
         function showUnit(id) {
             $('#units_list').hide();
             $('#unit_detail').show();
-            $('.eero-period button').removeClass('active').filter('[data-hours="' + hours + '"]').addClass('active');
-            ajaxGet('/api/eero/report/unit/' + encodeURIComponent(id) + '/' + hours, {}, function (page) {
+            ajaxGet('/api/eero/report/unit/' + encodeURIComponent(id), {}, function (page) {
                 const $d = $('#unit_detail_body').empty();
                 if (!page || page.error || !page.unit) {
                     $d.text(page && page.error ? plain(page.error) : '{{ lang._('eero does not know this unit.') }}');
@@ -359,10 +362,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
                 if (page.radios.length) {
                     $d.append($('<h4/>').text('{{ lang._('Radios') }}'),
-                        $('<p class="text-muted"/>').text('{{ lang._('Busy: how much of the time the channel is in use, by this unit, its clients and any other network on the same channel.') }}'),
-                        table(['{{ lang._('Band') }}', '{{ lang._('Channel') }}', '{{ lang._('Width') }}', '{{ lang._('Busy') }}', '{{ lang._('Clients') }}', '{{ lang._('Transmit power') }}'],
+                        table(['{{ lang._('Band') }}', '{{ lang._('Channel') }}', '{{ lang._('Width') }}', '{{ lang._('Clients') }}', '{{ lang._('Transmit power') }}'],
                             page.radios.map(r => [esc(r.band), r.channel != null ? esc(r.channel) : dash, r.width ? esc(r.width) + ' MHz' : dash,
-                                r.busy != null ? esc(r.busy) + ' %' : dash, r.clients != null ? esc(r.clients) : dash,
+                                r.clients != null ? esc(r.clients) : dash,
                                 r.tx_power ? esc(r.tx_power) + ' dBm' : dash])));
                 }
                 if (page.ports.length) {
@@ -384,10 +386,10 @@ POSSIBILITY OF SUCH DAMAGE.
                     online: '<span class="label label-success">{{ lang._('Back online') }}</span>',
                     primary: '<span class="label label-info">{{ lang._('Became primary') }}</span>'
                 };
-                $d.append($('<h4/>').text('{{ lang._('Status changes') }}'), page.events.length
+                $d.append($('<h4/>').text('{{ lang._('Status changes') }}, ' + lastDays(page.days)), page.events.length
                     ? table(null, page.events.map(e => [esc(when(e.ts)), STATE[e.event] || esc(e.event)]))
                         .find('td:first-child').css('width', '9em').end()
-                    : $('<p class="text-muted"/>').text('{{ lang._('Online throughout this period.') }}'));
+                    : $('<p class="text-muted"/>').text('{{ lang._('None.') }}'));
                 $d.append($('<h4/>').text('{{ lang._('Client moves on and off this unit, last 24 hours') }}'), page.moves.length
                     ? table(null, page.moves.map(e => [esc(when(e.ts)), formatters.client(null, e), moveText(e)]))
                         .find('td:first-child').css('width', '9em').end()
@@ -591,11 +593,6 @@ POSSIBILITY OF SUCH DAMAGE.
     <div id="units" class="tab-pane fade in">
         <div id="unit_detail" style="display: none; padding: 10px">
             <p><a href="#units">← {{ lang._('All units') }}</a></p>
-            <div class="btn-group eero-period" style="margin-bottom: 15px">
-                <button type="button" class="btn btn-default" data-hours="24">{{ lang._('1 day') }}</button>
-                <button type="button" class="btn btn-default" data-hours="168">{{ lang._('7 days') }}</button>
-                <button type="button" class="btn btn-default" data-hours="720">{{ lang._('30 days') }}</button>
-            </div>
             <div id="unit_detail_body">{{ lang._('Loading…') }}</div>
         </div>
         <div id="units_list">
@@ -623,9 +620,9 @@ POSSIBILITY OF SUCH DAMAGE.
                 <button type="button" class="btn btn-default" data-show="moves">{{ lang._('Recent moves') }}</button>
             </div>
             <div class="btn-group eero-period" style="margin-left: 10px; display: none">
-                <button type="button" class="btn btn-default" data-hours="24">{{ lang._('1 day') }}</button>
-                <button type="button" class="btn btn-default" data-hours="168">{{ lang._('7 days') }}</button>
-                <button type="button" class="btn btn-default" data-hours="720">{{ lang._('30 days') }}</button>
+{% for d in periods %}
+                <button type="button" class="btn btn-default" data-hours="{{ d * 24 }}">{{ d == 1 ? lang._('1 day') : d ~ ' ' ~ lang._('days') }}</button>
+{% endfor %}
             </div>
         </div>
         <div id="clients_list">
@@ -661,9 +658,9 @@ POSSIBILITY OF SUCH DAMAGE.
         <div id="client_detail" style="display: none; padding: 10px">
             <p><a href="#clients">← {{ lang._('All clients') }}</a></p>
             <div class="btn-group eero-period" style="margin-bottom: 15px">
-                <button type="button" class="btn btn-default" data-hours="24">{{ lang._('1 day') }}</button>
-                <button type="button" class="btn btn-default" data-hours="168">{{ lang._('7 days') }}</button>
-                <button type="button" class="btn btn-default" data-hours="720">{{ lang._('30 days') }}</button>
+{% for d in periods %}
+                <button type="button" class="btn btn-default" data-hours="{{ d * 24 }}">{{ d == 1 ? lang._('1 day') : d ~ ' ' ~ lang._('days') }}</button>
+{% endfor %}
             </div>
             <div id="client_detail_body">{{ lang._('Loading…') }}</div>
         </div>

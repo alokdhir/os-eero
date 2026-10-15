@@ -12,4 +12,4 @@ jobs:
           python-version: "3.13"
       - name: unit tests
         working-directory: tests
-        run: python -W error::ResourceWarning -m unittest test_client test_session test_history test_store test_poller test_query test_login test_units
+        run: python -W error::ResourceWarning -m unittest test_client test_session test_history test_store test_poller test_query test_login test_units test_config

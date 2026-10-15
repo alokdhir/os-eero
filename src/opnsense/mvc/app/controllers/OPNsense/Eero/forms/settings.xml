@@ -5,4 +5,10 @@
         <type>checkbox</type>
         <help>Poll eero for the state of your units and clients.</help>
     </field>
+    <field>
+        <id>eero.general.history_days</id>
+        <label>Keep history</label>
+        <type>text</type>
+        <help>Days of client moves and unit status changes to keep (1 to 90). Older ones are deleted every hour.</help>
+    </field>
 </form>
