@@ -98,7 +98,7 @@ that list.
 | `connection_type`, `wired` | `WIRED`, `WIRED_POE`, `WIRELESS` | Backhaul |
 | `wireless_upstream_node` | `null` when wired; else `{name, primary_mesh_radio, node_or_proxied_node_id, is_proxied_node}` | Upstream unit. `name` matches the upstream's `location`; `node_or_proxied_node_id` is *not* the id in its `url` |
 | `mesh_quality_bars` | 0–5 | Backhaul quality |
-| `is_primary_node`, `gateway`, `using_wan` | | Role |
+| `is_primary_node`, `gateway`, `using_wan` | | Role. `is_primary_node` is eero's gateway eero. In bridge mode every unit reports `gateway: false`, `using_wan: false`, but one is still primary, and eero moves the role: with the primary's wired port disabled (it stayed online over wireless backhaul) another wired unit became primary within ~2 min, and the original took it back ~1 min after its port returned (tested 2026-10-15). No API call sets it. |
 | `connected_clients_count`, `…_wired_…`, `…_wireless_…` | | Clients per unit |
 | `uptime.since_last_reboot_s`, `last_reboot` | | Uptime |
 | `bands[]`, `radio_channel_stats.band_*` | channel, width, utilization %, client count, tx power | Radio detail. Keys: `band_2_4GHz`; `band_5GHz_low` + `band_5GHz_high` on tri-band units, `band_5GHz_full` on dual-band ones |
