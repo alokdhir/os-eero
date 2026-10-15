@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS client_events (
     from_unit TEXT, to_unit TEXT, band_from TEXT, band_to TEXT, from_id TEXT, to_id TEXT);
 CREATE INDEX IF NOT EXISTS client_events_ts ON client_events (ts);
 CREATE INDEX IF NOT EXISTS client_events_mac ON client_events (mac, ts);
-CREATE TABLE IF NOT EXISTS unit_events (ts INTEGER NOT NULL, unit TEXT NOT NULL, location TEXT, event TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS unit_events (ts INTEGER NOT NULL, unit TEXT NOT NULL, location TEXT, event TEXT NOT NULL,
+    detail TEXT);
 CREATE INDEX IF NOT EXISTS unit_events_ts ON unit_events (ts);
 """
 
@@ -59,11 +60,15 @@ class Store:
             os.chmod(path, 0o600)
             self.db.execute('PRAGMA journal_mode=WAL')
             self.db.executescript(SCHEMA)
-            self._add_unit_ids()
+            self._migrate()
 
-    def _add_unit_ids(self):
-        """Tables from before moves kept unit ids (1.0) get the two columns, filled in from the unit names: each
-        name maps to the unit that has it in the cached unit list (a unit renamed since keeps no id)."""
+    def _migrate(self):
+        """Tables from 1.0: unit events get a detail column (why a unit went offline); client moves get the
+        units' ids, filled in from the unit names: each name maps to the unit that has it in the cached unit list
+        (a unit renamed since keeps no id)."""
+        if 'detail' not in {r[1] for r in self.db.execute('PRAGMA table_info(unit_events)')}:
+            with self.db:
+                self.db.execute('ALTER TABLE unit_events ADD COLUMN detail TEXT')
         cols = {r[1] for r in self.db.execute('PRAGMA table_info(client_events)')}
         if 'from_id' in cols:
             return
@@ -137,7 +142,8 @@ class Store:
     def add_unit_events(self, rows):
         if rows:
             with self.db:
-                self.db.executemany('INSERT INTO unit_events VALUES (?, ?, ?, ?)', rows)
+                self.db.executemany('INSERT INTO unit_events VALUES (?, ?, ?, ?, ?)',
+                                    [tuple(r) + (None,) * (5 - len(r)) for r in rows])
 
     def client_events(self, since, mac=None, limit=1000, events=None):
         """Newest first. `events`: only these kinds (e.g. ('roamed', 'band')), chosen before the limit applies."""
@@ -158,9 +164,9 @@ class Store:
         return self.db.execute('SELECT min(ts) FROM client_events').fetchone()[0]
 
     def unit_events(self, since, limit=1000):
-        cols = ('ts', 'unit', 'location', 'event')
+        cols = ('ts', 'unit', 'location', 'event', 'detail')
         return [dict(zip(cols, r)) for r in self.db.execute(
-            'SELECT ts, unit, location, event FROM unit_events WHERE ts >= ? ORDER BY ts DESC, rowid DESC LIMIT ?',
+            'SELECT %s FROM unit_events WHERE ts >= ? ORDER BY ts DESC, rowid DESC LIMIT ?' % ', '.join(cols),
             (int(since), int(limit)))]
 
     def prune(self, now, days):

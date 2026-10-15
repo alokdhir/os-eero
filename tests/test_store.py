@@ -73,12 +73,16 @@ class TestStore(unittest.TestCase):
         db.execute("CREATE TABLE client_events (ts INTEGER NOT NULL, mac TEXT NOT NULL, name TEXT, "
                    "event TEXT NOT NULL, from_unit TEXT, to_unit TEXT, band_from TEXT, band_to TEXT)")
         db.execute("INSERT INTO client_events VALUES (1, '02:00:00:00:03:01', 'a', 'roamed', 'Hallway', 'Gone', '5', '5')")
+        db.execute("CREATE TABLE unit_events (ts INTEGER NOT NULL, unit TEXT NOT NULL, location TEXT, event TEXT NOT NULL)")
+        db.execute("INSERT INTO unit_events VALUES (1, '/2.2/eeros/2000001', 'Hallway', 'offline')")
         db.commit()
         db.close()
         with Store(path) as s:
             s.add_client_events([(2, "02:00:00:00:03:01", "a", "roamed", "y", "x", "5", "5", "2", "1")])
             self.assertEqual([(e["from_id"], e["to_id"]) for e in s.client_events(0)],
                              [("2", "1"), ("2000001", None)])
+            s.add_unit_events([(2, "/2.2/eeros/2000001", "Hallway", "offline", "lost contact")])
+            self.assertEqual([e["detail"] for e in s.unit_events(0)], ["lost contact", None])
         with Store(path) as s:                                  # opening it again changes nothing
             self.assertEqual(len(s.client_events(0)), 2)
 

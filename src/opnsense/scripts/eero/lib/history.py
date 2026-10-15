@@ -82,10 +82,17 @@ def client_events(prev, cur, now):
 
 
 def _online(units):
+    """url -> (online, location, why not online, uptime in seconds)."""
     out = {}
     for u in units or []:
         if isinstance(u, dict) and u.get('url'):
-            out[u['url']] = (u.get('state') == 'ONLINE' and u.get('heartbeat_ok') is not False, u.get('location'))
+            state = u.get('state')
+            up = state == 'ONLINE' and u.get('heartbeat_ok') is not False
+            # eero's own state when it says why (REBOOTING, UPDATING, ...); a unit eero calls ONLINE but hasn't
+            # heard from is a lost contact, not necessarily down
+            why = None if up else ('lost contact' if state == 'ONLINE' else (state or 'unknown').lower())
+            uptime = (u.get('uptime') or {}).get('since_last_reboot_s')
+            out[u['url']] = (up, u.get('location'), why, uptime if isinstance(uptime, int) else None)
     return out
 
 
@@ -94,21 +101,25 @@ def _primary(units):
 
 
 def unit_events(prev, cur, now):
-    """Rows: (ts, unit url, location, 'online'|'offline'|'primary'). A unit that disappears from the list counts
-    as offline; a new unit as online. 'primary': the unit eero now calls primary (its gateway eero) wasn't before;
-    eero documents no election, so this records whether and when the role ever moves."""
+    """Rows: (ts, unit url, location, event, detail). Events: 'offline' (detail: why, as eero says: its state,
+    e.g. 'rebooting', or 'lost contact' when eero calls it online but hasn't heard from it), 'online', 'rebooted'
+    (its uptime started again: it really restarted, whoever caused it) and 'primary' (eero now calls it primary,
+    its gateway eero; eero documents no election, so this records whether and when the role moves). A unit that
+    disappears from the list counts as offline; a new unit as online."""
     before, after = _online(prev), _online(cur)
     events = []
-    for url, (up, loc) in sorted(after.items()):
+    for url, (up, loc, why, uptime) in sorted(after.items()):
         was = before.get(url)
+        if was is None and not before:
+            continue                        # first list ever seen: nothing to compare with
+        if was is not None and uptime is not None and was[3] is not None and uptime < was[3]:
+            events.append((now, url, loc, 'rebooted', None))
         if was is None or was[0] != up:
-            if was is None and not before:
-                continue                    # first list ever seen: nothing to compare with
-            events.append((now, url, loc, 'online' if up else 'offline'))
-    for url, (up, loc) in sorted(before.items()):
+            events.append((now, url, loc, 'online' if up else 'offline', None if up else why))
+    for url, (up, loc, why, uptime) in sorted(before.items()):
         if url not in after and up:
-            events.append((now, url, loc, 'offline'))
+            events.append((now, url, loc, 'offline', 'gone from the list'))
     if before:
         for url in sorted(_primary(cur) - _primary(prev)):
-            events.append((now, url, after[url][1], 'primary'))
+            events.append((now, url, after[url][1], 'primary', None))
     return events

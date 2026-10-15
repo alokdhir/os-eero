@@ -96,7 +96,7 @@ class TestUnitEvents(unittest.TestCase):
         before = fixture_doc("eeros")["data"]
         after = copy.deepcopy(before)
         before[0]["is_primary_node"], after[0]["is_primary_node"], after[1]["is_primary_node"] = True, False, True
-        self.assertEqual(unit_events(before, after, T), [(T, after[1]["url"], "Garage", "primary")])
+        self.assertEqual(unit_events(before, after, T), [(T, after[1]["url"], "Garage", "primary", None)])
         self.assertEqual(unit_events(after, after, T), [])
         self.assertEqual(unit_events([], after, T), [])                  # first list: nothing to compare
 
@@ -104,14 +104,29 @@ class TestUnitEvents(unittest.TestCase):
         before, after = units(), units()
         after[1]["state"] = "OFFLINE"
         after[1]["heartbeat_ok"] = False
-        self.assertEqual(unit_events(before, after, T), [(T, after[1]["url"], "Garage", "offline")])
-        self.assertEqual(unit_events(after, before, T + 60), [(T + 60, after[1]["url"], "Garage", "online")])
+        self.assertEqual(unit_events(before, after, T), [(T, after[1]["url"], "Garage", "offline", "offline")])
+        self.assertEqual(unit_events(after, before, T + 60), [(T + 60, after[1]["url"], "Garage", "online", None)])
+
+    def test_reboot_and_lost_contact(self):
+        """A reboot: eero says REBOOTING, then the unit is back with its uptime started again. A lost contact:
+        eero still calls it ONLINE but hasn't heard from it, and its uptime runs on: no reboot."""
+        up, rebooting, back = units(), units(), units()
+        rebooting[1]["state"] = "REBOOTING"
+        back[1]["uptime"] = {"since_last_reboot_s": 30}
+        url = up[1]["url"]
+        self.assertEqual(unit_events(up, rebooting, T), [(T, url, "Garage", "offline", "rebooting")])
+        self.assertEqual(unit_events(rebooting, back, T + 180),
+                         [(T + 180, url, "Garage", "rebooted", None), (T + 180, url, "Garage", "online", None)])
+        quiet = units()
+        quiet[1]["heartbeat_ok"] = False
+        self.assertEqual(unit_events(up, quiet, T), [(T, url, "Garage", "offline", "lost contact")])
+        self.assertEqual(unit_events(quiet, up, T + 60), [(T + 60, url, "Garage", "online", None)])
 
     def test_unit_removed_or_added(self):
         before, after = units(), units()
         gone = after.pop(2)
-        self.assertEqual(unit_events(before, after, T), [(T, gone["url"], "Patio", "offline")])
-        self.assertEqual(unit_events(after, before, T), [(T, gone["url"], "Patio", "online")])
+        self.assertEqual(unit_events(before, after, T), [(T, gone["url"], "Patio", "offline", "gone from the list")])
+        self.assertEqual(unit_events(after, before, T), [(T, gone["url"], "Patio", "online", None)])
 
 
 if __name__ == "__main__":

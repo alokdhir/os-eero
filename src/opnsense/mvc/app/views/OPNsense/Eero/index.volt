@@ -400,10 +400,13 @@ POSSIBILITY OF SUCH DAMAGE.
                 const STATE = {
                     offline: '<span class="label label-danger">{{ lang._('Went offline') }}</span>',
                     online: '<span class="label label-success">{{ lang._('Back online') }}</span>',
+                    rebooted: '<span class="label label-warning">{{ lang._('Rebooted') }}</span>',
                     primary: '<span class="label label-info">{{ lang._('Became primary') }}</span>'
                 };
+                /* why it went offline, as eero said: its state (rebooting, ...) or a lost contact */
+                const detail = e => e.detail ? ' <span class="text-muted">(' + esc(e.detail) + ')</span>' : '';
                 $d.append($('<h4/>').text('{{ lang._('Status changes') }}, ' + lastDays(page.days)), page.events.length
-                    ? table(null, page.events.map(e => [esc(when(e.ts)), STATE[e.event] || esc(e.event)]))
+                    ? table(null, page.events.map(e => [esc(when(e.ts)), (STATE[e.event] || esc(e.event)) + detail(e)]))
                         .find('td:first-child').css('width', '9em').end()
                     : $('<p class="text-muted"/>').text('{{ lang._('None.') }}'));
                 $d.append($('<h4/>').text('{{ lang._('Client moves on and off this unit, last 24 hours') }}'), page.moves.length
