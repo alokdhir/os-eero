@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
     .tabulator-row:hover .eero-edit, #unit_title:hover .eero-edit { visibility: visible; }
     @media (hover: none) { .eero-edit { visibility: visible; } }
     .eero-edit:hover { color: #337ab7; }
+    .eero-detail-title { font-size: 24px; margin: 8px 0 4px; }
+    .eero-detail-title small { display: block; margin-top: 6px; font-size: 13px; }
 </style>
 
 <script>
@@ -292,8 +294,8 @@ POSSIBILITY OF SUCH DAMAGE.
                     ? '{{ lang._('Now on') }} <strong>' + esc(c.unit) + '</strong>' + (c.band ? ' · ' + esc(c.band) : '')
                       + (c.signal !== null ? ' · ' + esc(c.signal) + ' dBm' : '') + (c.quality !== null ? ' · {{ lang._('quality') }} ' + esc(c.quality) + '/5' : '')
                     : '{{ lang._('Not connected') }}' + (c.last_seen ? ', {{ lang._('last seen') }} ' + esc(new Date(Date.parse(plain(c.last_seen))).toLocaleString()) : '');
-                $d.append($('<h3 style="margin-top: 0"/>').html(icon + esc(c.name)),
-                    $('<p class="text-muted"/>').text([plain(c.type), plain(c.mac) + (c.private_mac ? ' {{ lang._('(private address)') }}' : ''), plain(c.ip)].filter(Boolean).join(' · ')),
+                $d.append($('<h2 class="eero-detail-title"/>').html(icon + esc(c.name)
+                    + ' <small class="text-muted">' + esc([plain(c.type), plain(c.mac) + (c.private_mac ? ' {{ lang._('(private address)') }}' : ''), plain(c.ip)].filter(Boolean).join(' · ')) + '</small>'),
                     $('<p/>').html(now));
 
                 if (!page.history_since) {
@@ -347,8 +349,8 @@ POSSIBILITY OF SUCH DAMAGE.
                     return;
                 }
                 const u = page.unit;
-                $d.append($('<h3 id="unit_title" style="margin-top: 0"/>').html(unitLabel(u, esc(u.name)) + renameButton(u)),
-                    $('<p class="text-muted"/>').text([plain(u.model), plain(u.ip)].filter(Boolean).join(' · ')));
+                $d.append($('<h2 id="unit_title" class="eero-detail-title"/>').html(unitLabel(u, esc(u.name)) + renameButton(u)
+                    + ' <small class="text-muted">' + esc([plain(u.model), plain(u.ip)].filter(Boolean).join(' · ')) + '</small>'));
                 if (canReboot) {
                     /* an offline unit can't be told to reboot (eero answers error.eero.offline) */
                     /* the hint sits on a wrapper: a disabled button shows no tooltip */
