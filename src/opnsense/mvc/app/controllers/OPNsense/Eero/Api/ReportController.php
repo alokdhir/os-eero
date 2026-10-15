@@ -56,11 +56,12 @@ class ReportController extends ApiControllerBase
 
     /**
      * Loupe's name, type and icon for these clients, if os-loupe is installed (its `identities` query, contract
-     * version 1; see os-loupe's README). Without Loupe the action doesn't exist and this returns [].
+     * version 1; see os-loupe's README). Without Loupe this returns [] without asking configd, which would log
+     * every request for an action it doesn't have as an error.
      */
     private function loupeIdentities(array $macs)
     {
-        if (empty($macs)) {
+        if (empty($macs) || !class_exists('\OPNsense\Loupe\Loupe')) {
             return [];
         }
         $data = json_decode((new Backend())->configdpRun('loupe query', ['identities', implode(',', $macs)]) ?? '', true);

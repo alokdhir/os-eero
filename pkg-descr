@@ -6,6 +6,9 @@ A small service polls eero's cloud API (the one the eero app uses) at a
 gentle, rate-limited pace and keeps the results in SQLite; the GUI only
 reads that copy. Log in once from the GUI with the code eero sends you.
 
+With os-loupe installed, clients also show Loupe's device type and icon,
+and its name for devices eero only knows by their Wi-Fi chip's maker.
+
 Plugin Changelog
 ================
 
