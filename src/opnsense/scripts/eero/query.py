@@ -169,6 +169,7 @@ def clients(docs, include_all=False):
             # by its MAC ("0005CD000001")
             'vendor_name': not d.get('nickname') and _no_name(d),
             'unit': (d.get('source') or {}).get('location') or '',
+            'unit_id': _unit_id((d.get('source') or {}).get('url')),
             'band': (('%s GHz' % freq) if freq else '') + (' · ch %d' % channel if channel else ''),
             'signal': _dbm(conn.get('signal')),
             # eero's own 0-5 connection quality (the bars in the app). Not the link rate: that is the rate of
@@ -335,6 +336,97 @@ def moves(hours, db_path=cache.PATH, now=None, limit=2000):
     return [e for e in events if e['event'] in ('roamed', 'band')][:limit]
 
 
+BANDS = {'band_2_4GHz': '2.4 GHz', 'band_5GHz': '5 GHz', 'band_5GHz_full': '5 GHz', 'band_5GHz_low': '5 GHz (low)',
+         'band_5GHz_high': '5 GHz (high)', 'band_6GHz': '6 GHz'}
+
+
+def _speed(text):
+    """eero's port speed ('P1000') as '1 Gbps'."""
+    try:
+        mbps = int(str(text or '').lstrip('P'))
+    except ValueError:
+        return ''
+    return ('%g Gbps' % (mbps / 1000)) if mbps >= 1000 else ('%d Mbps' % mbps if mbps else '')
+
+
+def _power(info):
+    src = ((info or {}).get('power_source') or '').upper()
+    return {'ETHERNET': 'PoE', 'POE': 'PoE', 'USB': 'Power adapter', 'ADAPTER': 'Power adapter'}.get(src, src.capitalize())
+
+
+def _neighbour(n, by_ip):
+    """What an LLDP neighbour is: an eero unit (matched by its address), else the name it gives, else the
+    port it reports (a switch port)."""
+    if not isinstance(n, dict):
+        return None
+    loc = by_ip.get(n.get('managementIpv4Address'))
+    if loc:
+        return loc + ' eero'
+    name = readable(n.get('systemName'))
+    if name and name != 'eero':
+        return name
+    port = readable(n.get('portId'))
+    return ('port %s' % port) if port and n.get('portIdType') != 'MacAddress' else None
+
+
+def unit(uid, hours, db_path=cache.PATH, now=None):
+    """One unit's page: its details, radios, ports, clients on it now, and its history."""
+    uid = str(uid or '').strip()
+    if not re.match(r'^[0-9A-Za-z_-]{1,40}$', uid):
+        return {'error': 'invalid unit'}
+    now = int(now if now is not None else time.time())
+    start = now - int(hours * 3600)
+    try:
+        with cache.Store(db_path, readonly=True) as s:
+            udocs, cdocs = s.get('units')[1], s.get('clients')[1]
+            since = s.state().get('history_since')
+            uevents = s.unit_events(start, limit=5000)
+            cevents = s.client_events(start, limit=50000)
+    except Exception:
+        udocs, cdocs, since, uevents, cevents = None, None, None, [], []
+    u = next((d for d in udocs or [] if isinstance(d, dict) and _unit_id(d.get('url')) == uid), None)
+    if u is None:
+        return {'error': 'eero does not know this unit'}
+    row = next(r for r in units([u]))
+    loc = row['name']
+    reboot = u.get('last_reboot') or ''
+    row.update({
+        'serial': u.get('serial') or '',
+        'mac': u.get('mac_address') or '',
+        'power': _power(u.get('power_info')),
+        'last_reboot': reboot,
+        'update_available': bool(u.get('update_available')),
+    })
+    radios = []
+    for key, r in sorted((u.get('radio_channel_stats') or {}).items(), key=lambda kv: list(BANDS).index(kv[0])
+                         if kv[0] in BANDS else len(BANDS)):
+        if isinstance(r, dict):
+            radios.append({'band': BANDS.get(key, key), 'channel': r.get('channel'), 'width': r.get('channel_width'),
+                           'busy': r.get('channel_utilization'), 'clients': r.get('client_count'),
+                           'tx_power': r.get('tx_power')})
+    by_ip = {d.get('ip_address'): d.get('location') for d in udocs if isinstance(d, dict) and d.get('ip_address')}
+    ports = []
+    for p in (u.get('ethernet_status') or {}).get('statuses') or []:
+        if not isinstance(p, dict):
+            continue
+        seen = [_neighbour(n, by_ip) for n in (p.get('lldpInfo') or [])]
+        ports.append({'port': p.get('port_name') or str(p.get('interfaceNumber', '')), 'link': bool(p.get('hasCarrier')),
+                      'speed': _speed(p.get('speed')) if p.get('hasCarrier') else '',
+                      'uplink': bool(p.get('isWanPort') or p.get('isLeafWiredToUpstream')),
+                      'neighbours': sorted({n for n in seen if n and n != loc + ' eero'})})
+    url = u.get('url')
+    return {
+        'unit': row,
+        'radios': radios,
+        'ports': ports,
+        'clients': [c for c in clients(cdocs) if c['unit_id'] == uid],
+        'hours': hours,
+        'history_since': since,
+        'events': [e for e in uevents if e['unit'] == url],
+        'moves': [e for e in cevents if e['from_unit'] == loc or e['to_unit'] == loc][:500],
+    }
+
+
 def main(argv):
     what = argv[1] if len(argv) > 1 else 'status'
     if what == 'status':
@@ -349,6 +441,8 @@ def main(argv):
         result = client(argv[2] if len(argv) > 2 else '', hours_arg(argv[3] if len(argv) > 3 else 24))
     elif what == 'moves':
         result = moves(hours_arg(argv[2] if len(argv) > 2 else 24))
+    elif what == 'unit':
+        result = unit(argv[2] if len(argv) > 2 else '', hours_arg(argv[3] if len(argv) > 3 else 24))
     else:
         result = {'error': 'unknown query'}
     print(json.dumps(result))

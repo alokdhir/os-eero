@@ -54,7 +54,7 @@
       "os": "eeroOS",
       "os_version": "v7.17.2-139",
       "power_info": {
-        "power_source": "adapter",
+        "power_source": "USB",
         "power_source_metadata": {}
       },
       "provides_wifi": true,
@@ -122,8 +122,53 @@
             "interfaceNumber": 0,
             "isLeafWiredToUpstream": true,
             "isLte": false,
-            "isWanPort": false,
-            "lldpInfo": [],
+            "isWanPort": true,
+            "lldpInfo": [
+              {
+                "systemDescription": "eero Pro 6 GGC0000000001",
+                "managementIpv4Address": "192.0.2.11",
+                "chassisIdType": "MacAddress",
+                "chassisId": "02:00:00:00:01:01",
+                "portIdType": "LocallyAssigned",
+                "portId": "1",
+                "portDescription": "eth1",
+                "macAddress": "02:00:00:00:01:01",
+                "systemName": "eero"
+              },
+              {
+                "systemDescription": "",
+                "managementIpv4Address": null,
+                "chassisIdType": "MacAddress",
+                "chassisId": "02:00:00:00:09:01",
+                "portIdType": "LocallyAssigned",
+                "portId": "TE4",
+                "portDescription": "",
+                "macAddress": "02:00:00:00:09:01",
+                "systemName": null
+              },
+              {
+                "systemDescription": "Linux",
+                "managementIpv4Address": "192.0.2.50",
+                "chassisIdType": "MacAddress",
+                "chassisId": "02:00:00:00:09:02",
+                "portIdType": "MacAddress",
+                "portId": "02:00:00:00:09:02",
+                "portDescription": "eth0",
+                "macAddress": "02:00:00:00:09:02",
+                "systemName": "example-kvm"
+              },
+              {
+                "systemDescription": "eero PoE 6 GGC0000000002",
+                "managementIpv4Address": "192.0.2.12",
+                "chassisIdType": "MacAddress",
+                "chassisId": "02:00:00:00:01:02",
+                "portIdType": "LocallyAssigned",
+                "portId": "1",
+                "portDescription": "eth1",
+                "macAddress": "02:00:00:00:01:02",
+                "systemName": "eero"
+              }
+            ],
             "neighbor": null,
             "original_speed": null,
             "poe": null,
@@ -153,8 +198,11 @@
       "os": "eeroOS",
       "os_version": "v7.17.2-139",
       "power_info": {
-        "power_source": "poe",
-        "power_source_metadata": {}
+        "power_source": "ETHERNET",
+        "power_source_metadata": {
+          "port": 1,
+          "negotiated_power": 13000
+        }
       },
       "provides_wifi": true,
       "radio_channel_stats": {
@@ -252,7 +300,7 @@
       "os": "eeroOS",
       "os_version": "v7.17.2-139",
       "power_info": {
-        "power_source": "adapter",
+        "power_source": "USB",
         "power_source_metadata": {}
       },
       "provides_wifi": true,

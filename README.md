@@ -5,13 +5,14 @@ which unit it's on, and the network's settings. Read-only: changes stay in the e
 
 ## What it shows
 
-- **Units**: each eero unit: online or not, model, firmware, IP, wired or wireless backhaul
-  (and which unit it hangs off), mesh quality, clients, uptime, radios and ports.
+- **Units**: each eero unit: online or not, model, IP, wired or wireless backhaul (and which
+  unit it hangs off), mesh quality, clients and uptime. Each unit has its own page: the clients on
+  it now, its radios (channel, width, how busy), its ports and what is seen on them, firmware,
+  power and serial number, and when it went offline or came back.
 - **Clients**: every Wi-Fi client: name, which eero it's on, band and channel, signal, connection
   quality (eero's 0-5 bars), address, and when it was last seen. Each client has its own page with
   the time it spent on each eero and its moves between them; *Recent moves* lists the latest moves
-  across all clients. Wired clients are left out: in bridge mode eero attributes devices on
-  your switches to the nearest unit, so its wired list isn't reliable.
+  across all clients.
 - **Network**: the eero network's settings and health: bridge or router mode, DHCP and DNS, band
   steering, WPA3, guest network, updates, last speed test.
 

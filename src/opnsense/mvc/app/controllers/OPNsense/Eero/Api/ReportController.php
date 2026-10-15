@@ -125,10 +125,26 @@ class ReportController extends ApiControllerBase
         return $page;
     }
 
-    /** Recent moves across all clients, named and iconed like the Clients grid. */
-    public function searchMovesAction()
+    /** One unit's page: details, radios, ports, its clients now, its history. */
+    public function unitAction($id = '', $hours = 24)
     {
-        $events = $this->query(['moves', $this->hours($this->request->getPost('hours', null, 24))]);
+        $id = rawurldecode($id);
+        if (!preg_match('/^[0-9A-Za-z_-]{1,40}$/', $id)) {
+            return ['error' => 'invalid unit'];
+        }
+        $page = $this->query(['unit', $id, $this->hours($hours)]);
+        if (!empty($page['clients'])) {
+            $this->decorate($page['clients']);
+        }
+        if (!empty($page['moves'])) {
+            $page['moves'] = $this->named($page['moves']);
+        }
+        return $page;
+    }
+
+    /** Client events named and iconed like the Clients grid (by the client's current name, not the one recorded). */
+    private function named(array $events)
+    {
         $current = [];
         foreach ($this->query(['clients', 'all']) as $c) {
             $current[$c['mac']] = $c;
@@ -141,6 +157,13 @@ class ReportController extends ApiControllerBase
                             'name' => $c['name'] ?? ($e['name'] ?? $e['mac'])];
         }
         $this->decorate($rows);
+        return $rows;
+    }
+
+    /** Recent moves across all clients, named and iconed like the Clients grid. */
+    public function searchMovesAction()
+    {
+        $rows = $this->named($this->query(['moves', $this->hours($this->request->getPost('hours', null, 24))]));
         // no default sort key: keep the query's newest-first order (a default key would sort ascending)
         return $this->searchRecordsetBase($rows, self::SEARCH['moves'], null, null, SORT_NUMERIC);
     }

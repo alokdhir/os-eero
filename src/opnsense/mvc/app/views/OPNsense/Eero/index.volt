@@ -47,10 +47,18 @@ POSSIBILITY OF SUCH DAMAGE.
             }
         });
 
-        /* tabs <-> address: #units, #clients, #network, #settings, and the Clients tab's views #moves and
-           #client=<mac>. Apply only belongs to Settings. */
+        /* tabs <-> address: #units, #clients, #network, #settings, the Units tab's #unit=<id>, and the Clients
+           tab's views #moves and #client=<mac>. Apply only belongs to Settings. */
         let clientView = {view: 'list', mac: null};
+        let unitView = null;                        /* a unit's id while its page is shown */
         function tabOf(hash) {
+            if (hash.startsWith('#unit=')) {
+                unitView = decodeURIComponent(hash.slice(6));
+                return '#units';
+            }
+            if (hash === '#units') {
+                unitView = null;
+            }
             if (hash.startsWith('#client=')) {
                 clientView = {view: 'client', mac: decodeURIComponent(hash.slice(8)).toLowerCase()};
                 return '#clients';
@@ -77,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
             const hash = window.location.hash;
             if (tabOf(hash) !== e.target.hash) {
                 if (e.target.hash === '#clients') clientView = {view: 'list', mac: null};
+                if (e.target.hash === '#units') unitView = null;
                 history.replaceState(null, null, e.target.hash);
             }
             $('.eero-apply').toggle(e.target.hash === '#settings');
@@ -87,14 +96,17 @@ POSSIBILITY OF SUCH DAMAGE.
            default formatter, so every column with eero- or device-supplied text uses one that escapes. */
 
         const dash = '<span class="text-muted">–</span>';
+        function unitLabel(row, name) {
+            return name + (row.primary ? ' <span class="text-muted">({{ lang._('primary') }})</span>' : '')
+                + (row.online ? '' : ' <span class="label label-danger">{{ lang._('Offline') }}</span>');
+        }
         const formatters = {
             text: function (column, row) {
                 const v = row[column.id];
                 return v === null || v === undefined || v === '' ? dash : esc(v);
             },
             unit: function (column, row) {
-                return esc(row.name) + (row.primary ? ' <span class="text-muted">({{ lang._('primary') }})</span>' : '')
-                    + (row.online ? '' : ' <span class="label label-danger">{{ lang._('Offline') }}</span>');
+                return unitLabel(row, '<a href="#unit=' + encodeURIComponent(plain(row.id)) + '">' + esc(row.name) + '</a>');
             },
             client: function (column, row) {
                 /* icon: a Font Awesome class from Loupe (when installed); only fa-* class names are used */
@@ -196,7 +208,7 @@ POSSIBILITY OF SUCH DAMAGE.
         });
         $('.eero-period button').on('click', function () {
             hours = parseInt($(this).data('hours'));
-            load('#clients');
+            load($('#maintabs li.active a').attr('href'));
         });
 
         function when(ts) {
@@ -219,7 +231,7 @@ POSSIBILITY OF SUCH DAMAGE.
             $('#clients_bar').toggle(view !== 'client');
             $('#clients_show button').removeClass('active');
             $('#clients_show button[data-show="' + (view === 'moves' ? 'moves' : clientsShow) + '"]').addClass('active');
-            $('.eero-period').toggle(view !== 'list');
+            $('#clients_bar .eero-period').toggle(view !== 'list');
             $('.eero-period button').removeClass('active').filter('[data-hours="' + hours + '"]').addClass('active');
         }
         function showClients() {
@@ -231,6 +243,16 @@ POSSIBILITY OF SUCH DAMAGE.
             grid('grid_moves', '/api/eero/report/search_moves', () => ({hours: hours}));
         }
 
+        const MOVE = {
+            roamed: e => esc(e.from_unit) + ' → <strong>' + esc(e.to_unit) + '</strong>',
+            band: e => esc(e.to_unit) + ': ' + esc(ghz(e.band_from)) + ' → ' + esc(ghz(e.band_to)),
+            connected: e => '{{ lang._('joined') }} <strong>' + esc(e.to_unit) + '</strong>',
+            disconnected: e => '{{ lang._('left') }} ' + esc(e.from_unit)
+        };
+        function moveText(e) {
+            const band = e.event === 'roamed' && e.band_from !== e.band_to ? ' <span class="text-muted">(' + esc(ghz(e.band_from)) + ' → ' + esc(ghz(e.band_to)) + ')</span>' : '';
+            return (MOVE[e.event] ? MOVE[e.event](e) : esc(e.event)) + band;
+        }
         const BAR = ['progress-bar-success', 'progress-bar-info', 'progress-bar-warning', 'progress-bar-danger', ''];
         function showClient(mac) {
             views('client');
@@ -270,19 +292,88 @@ POSSIBILITY OF SUCH DAMAGE.
                 $d.append($('<h4/>').text('{{ lang._('Time on each eero') }}' + since), $bar, $legend);
 
                 const $t = $('<tbody/>');
-                const what = {
-                    roamed: e => esc(e.from_unit) + ' → <strong>' + esc(e.to_unit) + '</strong>',
-                    band: e => esc(e.to_unit) + ': ' + esc(ghz(e.band_from)) + ' → ' + esc(ghz(e.band_to)),
-                    connected: e => '{{ lang._('joined') }} <strong>' + esc(e.to_unit) + '</strong>',
-                    disconnected: e => '{{ lang._('left') }} ' + esc(e.from_unit)
-                };
                 page.events.forEach(function (e) {
-                    const band = e.event === 'roamed' && e.band_from !== e.band_to ? ' <span class="text-muted">(' + esc(ghz(e.band_from)) + ' → ' + esc(ghz(e.band_to)) + ')</span>' : '';
-                    $t.append($('<tr/>').append($('<td style="width: 9em"/>').text(when(e.ts)),
-                        $('<td/>').html((what[e.event] ? what[e.event](e) : esc(e.event)) + band)));
+                    $t.append($('<tr/>').append($('<td style="width: 9em"/>').text(when(e.ts)), $('<td/>').html(moveText(e))));
                 });
                 $d.append($('<h4/>').text('{{ lang._('Moves') }}'), page.events.length
                     ? $('<table class="table table-condensed table-striped"/>').append($t)
+                    : $('<p class="text-muted"/>').text('{{ lang._('No moves in this period.') }}'));
+            });
+        }
+        function table(head, rows) {
+            /* rows: arrays of HTML cells (already escaped) */
+            const $t = $('<table class="table table-condensed table-striped" style="margin-bottom: 20px"/>');
+            if (head) $t.append($('<thead/>').append($('<tr/>').append(head.map(h => $('<th/>').text(h)))));
+            const $b = $('<tbody/>');
+            rows.forEach(r => $b.append($('<tr/>').append(r.map(c => $('<td/>').html(c)))));
+            return $t.append($b);
+        }
+        function showUnits() {
+            $('#units_list').show();
+            $('#unit_detail').hide();
+            grid('grid_units', '/api/eero/report/search_units');
+        }
+        function showUnit(id) {
+            $('#units_list').hide();
+            $('#unit_detail').show();
+            $('.eero-period button').removeClass('active').filter('[data-hours="' + hours + '"]').addClass('active');
+            ajaxGet('/api/eero/report/unit/' + encodeURIComponent(id) + '/' + hours, {}, function (page) {
+                const $d = $('#unit_detail_body').empty();
+                if (!page || page.error || !page.unit) {
+                    $d.text(page && page.error ? plain(page.error) : '{{ lang._('eero does not know this unit.') }}');
+                    return;
+                }
+                const u = page.unit;
+                $d.append($('<h3 style="margin-top: 0"/>').html(unitLabel(u, esc(u.name))),
+                    $('<p class="text-muted"/>').text([plain(u.model), plain(u.ip)].filter(Boolean).join(' · ')));
+
+                const reboot = Date.parse(plain(u.last_reboot));
+                $d.append(table(null, [
+                    ['{{ lang._('Backhaul') }}', esc(u.backhaul) + (u.mesh !== null ? ' &nbsp;' + formatters.bars({id: 'mesh'}, u) : '')],
+                    ['{{ lang._('Up for') }}', formatters.uptime(null, u) + (isNaN(reboot) ? '' : ' <span class="text-muted">({{ lang._('since') }} ' + esc(new Date(reboot).toLocaleString()) + ')</span>')],
+                    ['{{ lang._('Firmware') }}', esc(u.firmware) || dash],
+                    ['{{ lang._('Power') }}', esc(u.power) || dash],
+                    ['{{ lang._('Serial number') }}', esc(u.serial) || dash],
+                    ['{{ lang._('MAC address') }}', esc(u.mac) || dash]
+                ]).find('td:first-child').css('width', '30%').end());
+
+                $d.append($('<h4/>').text('{{ lang._('Clients on this eero now') }} (' + page.clients.length + ')'));
+                $d.append(page.clients.length
+                    ? table(['{{ lang._('Name') }}', '{{ lang._('Band') }}', '{{ lang._('Signal') }}', '{{ lang._('Quality') }}', '{{ lang._('Type') }}'],
+                        page.clients.map(c => [formatters.client(null, c), formatters.text({id: 'band'}, c), formatters.signal(null, c),
+                            formatters.bars({id: 'quality'}, c), formatters.text({id: 'type'}, c)]))
+                    : $('<p class="text-muted"/>').text('{{ lang._('No Wi-Fi clients.') }}'));
+
+                if (page.radios.length) {
+                    $d.append($('<h4/>').text('{{ lang._('Radios') }}'),
+                        $('<p class="text-muted"/>').text('{{ lang._('Busy: how much of the time the channel is in use, by this eero, its clients and any other network on the same channel.') }}'),
+                        table(['{{ lang._('Band') }}', '{{ lang._('Channel') }}', '{{ lang._('Width') }}', '{{ lang._('Busy') }}', '{{ lang._('Clients') }}', '{{ lang._('Transmit power') }}'],
+                            page.radios.map(r => [esc(r.band), r.channel != null ? esc(r.channel) : dash, r.width ? esc(r.width) + ' MHz' : dash,
+                                r.busy != null ? esc(r.busy) + ' %' : dash, r.clients != null ? esc(r.clients) : dash,
+                                r.tx_power ? esc(r.tx_power) + ' dBm' : dash])));
+                }
+                if (page.ports.length) {
+                    $d.append($('<h4/>').text('{{ lang._('Ports') }}'),
+                        $('<p class="text-muted"/>').text('{{ lang._('Seen on the port: devices that announce themselves (LLDP) on the network behind it.') }}'),
+                        table(['{{ lang._('Port') }}', '{{ lang._('Link') }}', '{{ lang._('Role') }}', '{{ lang._('Seen on the port') }}'],
+                            page.ports.map(p => [esc(p.port),
+                                p.link ? '<i class="fa fa-circle text-success"></i>&nbsp; ' + (esc(p.speed) || '{{ lang._('up') }}') : '<span class="text-muted">{{ lang._('no link') }}</span>',
+                                p.uplink ? '{{ lang._('Uplink') }}' : dash,
+                                p.neighbours.length ? p.neighbours.map(esc).join(', ') : dash])));
+                }
+
+                if (!page.history_since) {
+                    $d.append($('<p class="text-muted"/>').text('{{ lang._('No history yet: it starts a minute after the first update from eero.') }}'));
+                    return;
+                }
+                $d.append($('<h4/>').text('{{ lang._('Online and offline') }}'), page.events.length
+                    ? table(null, page.events.map(e => [esc(when(e.ts)), e.event === 'offline'
+                        ? '<span class="label label-danger">{{ lang._('Went offline') }}</span>' : '<span class="label label-success">{{ lang._('Back online') }}</span>']))
+                        .find('td:first-child').css('width', '9em').end()
+                    : $('<p class="text-muted"/>').text('{{ lang._('Online throughout this period.') }}'));
+                $d.append($('<h4/>').text('{{ lang._('Client moves on and off this eero') }}'), page.moves.length
+                    ? table(null, page.moves.map(e => [esc(when(e.ts)), formatters.client(null, e), moveText(e)]))
+                        .find('td:first-child').css('width', '9em').end()
                     : $('<p class="text-muted"/>').text('{{ lang._('No moves in this period.') }}'));
             });
         }
@@ -305,7 +396,7 @@ POSSIBILITY OF SUCH DAMAGE.
             });
         }
         function load(tab) {
-            if (tab === '#units') grid('grid_units', '/api/eero/report/search_units');
+            if (tab === '#units') unitView ? showUnit(unitView) : showUnits();
             else if (tab === '#clients') ({list: showClients, moves: showMoves, client: () => showClient(clientView.mac)})[clientView.view]();
             else if (tab === '#network') showNetwork();
         }
@@ -467,6 +558,16 @@ POSSIBILITY OF SUCH DAMAGE.
 </ul>
 <div class="tab-content content-box">
     <div id="units" class="tab-pane fade in">
+        <div id="unit_detail" style="display: none; padding: 10px">
+            <p><a href="#units">← {{ lang._('All units') }}</a></p>
+            <div class="btn-group eero-period" style="margin-bottom: 15px">
+                <button type="button" class="btn btn-default" data-hours="24">{{ lang._('1 day') }}</button>
+                <button type="button" class="btn btn-default" data-hours="168">{{ lang._('7 days') }}</button>
+                <button type="button" class="btn btn-default" data-hours="720">{{ lang._('30 days') }}</button>
+            </div>
+            <div id="unit_detail_body">{{ lang._('Loading…') }}</div>
+        </div>
+        <div id="units_list">
         <table id="grid_units" class="table table-condensed table-hover table-striped table-responsive">
             <thead><tr>
                 <th data-column-id="id" data-identifier="true" data-visible="false">ID</th>
@@ -481,6 +582,7 @@ POSSIBILITY OF SUCH DAMAGE.
             </tr></thead>
             <tbody></tbody>
         </table>
+        </div>
     </div>
     <div id="clients" class="tab-pane fade in">
         <div style="padding: 10px 10px 0" id="clients_bar">

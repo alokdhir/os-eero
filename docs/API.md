@@ -91,9 +91,9 @@ that list.
 | `is_primary_node`, `gateway`, `using_wan` | | Role |
 | `connected_clients_count`, `…_wired_…`, `…_wireless_…` | | Clients per unit |
 | `uptime.since_last_reboot_s`, `last_reboot` | | Uptime |
-| `bands[]`, `radio_channel_stats.band_*` | channel, width, utilization %, client count, tx power | Radio detail |
-| `ethernet_status.statuses[]` | port name, `hasCarrier`, `speed`, `isWanPort`, `isLeafWiredToUpstream`, LLDP | Port detail |
-| `power_info.power_source` | | PoE vs adapter |
+| `bands[]`, `radio_channel_stats.band_*` | channel, width, utilization %, client count, tx power | Radio detail. Keys: `band_2_4GHz`; `band_5GHz_low` + `band_5GHz_high` on tri-band units, `band_5GHz_full` on dual-band ones |
+| `ethernet_status.statuses[]` | `port_name`, `hasCarrier`, `speed` (`P1000`; `P10` on a port with no link), `isWanPort` (the uplink on wired units), `isLeafWiredToUpstream`, `lldpInfo[]` | Port detail. `lldpInfo` lists every LLDP speaker on the port's network, not just the next hop: other eero units (`systemName` `eero`, matched by `managementIpv4Address`), other devices by `systemName`, switch ports by `portId`. `neighbor` was always null |
+| `power_info.power_source` | `ETHERNET` (PoE; metadata `port`, `negotiated_power`), `USB` (adapter) | Power |
 | `resources.connections`, `resources.reboot` | paths | Connections; reboot (later) |
 
 ### Clients (`/devices`)
