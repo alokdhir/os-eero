@@ -98,8 +98,9 @@ def units(docs):
         up = u.get('wireless_upstream_node') or {}
         backhaul = BACKHAUL.get(u.get('connection_type'), u.get('connection_type') or '')
         if up:
-            backhaul += ' via %s' % up.get('name', '?') + (' (%s)' % up['primary_mesh_radio'].replace('GHz', ' GHz')
-                                                          if up.get('primary_mesh_radio') else '')
+            backhaul += ' via %s' % up.get('name', '?')
+            if up.get('primary_mesh_radio'):
+                backhaul += ' (%s)' % up['primary_mesh_radio'].replace('GHz', ' GHz')
         rows.append({
             'id': _unit_id(u.get('url')),
             'name': u.get('location') or u.get('serial') or '?',
@@ -202,6 +203,9 @@ def network(net, thread=None, speedtests=None, units=None):
     updates = net.get('updates') or {}
     speed = net.get('speed') or {}
     thread = thread if isinstance(thread, dict) else {}
+    mode = (net.get('connection') or {}).get('mode')
+    bridged = net.get('gateway') == 'bridged' or mode == 'bridged'
+    primary = (u for u in units or [] if isinstance(u, dict) and u.get('is_primary_node'))
 
     def speed_text(v):
         return '%s %s' % (v.get('value'), v.get('units') or 'Mbps') if isinstance(v, dict) and v.get('value') is not None else None
@@ -211,8 +215,7 @@ def network(net, thread=None, speedtests=None, units=None):
             ('Name', net.get('name')),
             ('Status', net.get('status')),
             ('Internet', internet.get('status')),
-            ('Mode', 'Bridge (the router does DHCP and routing)' if net.get('gateway') == 'bridged'
-             or (net.get('connection') or {}).get('mode') == 'bridged' else (net.get('connection') or {}).get('mode')),
+            ('Mode', 'Bridge (the router does DHCP and routing)' if bridged else mode),
             ('DHCP', (net.get('dhcp') or {}).get('mode')),
             ('DNS', (net.get('dns') or {}).get('mode')),
             ('DNS caching', _yes((net.get('dns') or {}).get('caching'))),
@@ -231,8 +234,7 @@ def network(net, thread=None, speedtests=None, units=None):
             ('HomeKit', _yes((net.get('homekit') or {}).get('enabled'))),
         ]),
         ('Units and clients', [
-            ('Primary unit', next((u.get('location') for u in units or [] if isinstance(u, dict)
-                                   and u.get('is_primary_node')), None)),
+            ('Primary unit', next((u.get('location') for u in primary), None)),
             ('Units online', net.get('online_eeros_count')),
             ('Units offline', net.get('offline_eeros_count')),
             ('Clients', (net.get('clients') or {}).get('count')),

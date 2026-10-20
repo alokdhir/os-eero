@@ -37,8 +37,8 @@ def readable(name):
 
 
 def client_name(d):
-    return (d.get('nickname') or readable(d.get('display_name')) or readable(d.get('hostname'))
-            or d.get('manufacturer') or d.get('mac') or '?')
+    names = (d.get('nickname'), readable(d.get('display_name')), readable(d.get('hostname')), d.get('manufacturer'), d.get('mac'))
+    return next((n for n in names if n), '?')
 
 
 def unit_id(url):

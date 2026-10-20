@@ -74,8 +74,8 @@ def syslog_line(text):
 
 
 def _unit(units, uid):
-    return next((u for u in units or [] if isinstance(u, dict)
-                 and (u.get('url') or '').rstrip('/').rsplit('/', 1)[-1] == uid), None)
+    units = [u for u in units or [] if isinstance(u, dict)]
+    return next((u for u in units if (u.get('url') or '').rstrip('/').rsplit('/', 1)[-1] == uid), None)
 
 
 def _signed_in(client, sessions):
