@@ -41,7 +41,10 @@ class AccountController extends ApiControllerBase
     {
         $out = trim((new Backend())->configdpRun($action, $params) ?? '');
         $result = json_decode($out, true);
-        return is_array($result) ? $result : ['result' => 'failed', 'message' => gettext('No answer from the eero service.')];
+        if (!is_array($result)) {
+            return ['result' => 'failed', 'message' => gettext('No answer from the eero service.')];
+        }
+        return $result;
     }
 
     /** What the status line shows (from eerod's cache; never calls eero). */
@@ -57,7 +60,10 @@ class AccountController extends ApiControllerBase
         }
         $who = trim((string)$this->request->getPost('identifier', null, ''));
         if ($who === '' || strlen($who) > 254) {
-            return ['result' => 'failed', 'message' => gettext('Enter the email address or phone number of your eero account.')];
+            return [
+                'result' => 'failed',
+                'message' => gettext('Enter the email address or phone number of your eero account.'),
+            ];
         }
         return $this->run('eero signin', [$who]);
     }

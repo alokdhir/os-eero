@@ -64,8 +64,12 @@ class ReportController extends ApiControllerBase
         if (empty($macs) || !class_exists('\OPNsense\Loupe\Loupe')) {
             return [];
         }
-        $data = json_decode((new Backend())->configdpRun('loupe query', ['identities', implode(',', $macs)]) ?? '', true);
-        return (is_array($data) && ($data['version'] ?? null) === 1 && is_array($data['devices'] ?? null)) ? $data['devices'] : [];
+        $out = (new Backend())->configdpRun('loupe query', ['identities', implode(',', $macs)]) ?? '';
+        $data = json_decode($out, true);
+        if (!is_array($data) || ($data['version'] ?? null) !== 1 || !is_array($data['devices'] ?? null)) {
+            return [];
+        }
+        return $data['devices'];
     }
 
     /** Loupe's icon, type, name (unless set in the eero app) and vendor on client rows, in place. */
@@ -153,9 +157,14 @@ class ReportController extends ApiControllerBase
         foreach ($events as $i => $e) {
             $c = $current[$e['mac']] ?? [];
             /* array_merge, not +: the event's own (recorded) name must give way to the current one */
-            $rows[] = array_merge($e, ['id' => $i, 'named' => $c['named'] ?? false, 'vendor_name' => $c['vendor_name'] ?? false,
-                                       'type' => $c['type'] ?? '', 'maker' => $c['maker'] ?? '',
-                                       'name' => $c['name'] ?? ($e['name'] ?? $e['mac'])]);
+            $rows[] = array_merge($e, [
+                'id' => $i,
+                'named' => $c['named'] ?? false,
+                'vendor_name' => $c['vendor_name'] ?? false,
+                'type' => $c['type'] ?? '',
+                'maker' => $c['maker'] ?? '',
+                'name' => $c['name'] ?? ($e['name'] ?? $e['mac']),
+            ]);
         }
         $this->decorate($rows);
         return $rows;
