@@ -128,9 +128,10 @@ POSSIBILITY OF SUCH DAMAGE.
                 return v === null || v === undefined || v === '' ? dash : esc(v);
             },
             address: function (column, row) {
-                /* where eero has no IPv4 for a client, the controller gives the router's (ip_router) */
+                /* where eero has no IPv4 for a client, the controller gives the router's (ip_router): greyed, so it
+                   shows there is something to hover for */
                 const v = formatters.text(column, row);
-                return row.ip_router ? '<span title="{{ lang._('From the router: eero does not report an address for this device') }}">' + v + '</span>' : v;
+                return row.ip_router ? '<span class="text-muted" title="{{ lang._('From the router: eero does not report an address for this device') }}">' + v + '</span>' : v;
             },
             unit: function (column, row) {
                 return unitLabel(row, '<a href="#unit=' + encodeURIComponent(plain(row.id)) + '">' + esc(row.name) + '</a>') + renameButton(row);
