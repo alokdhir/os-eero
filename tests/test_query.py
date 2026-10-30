@@ -105,6 +105,20 @@ class TestTabs(unittest.TestCase):
         self.assertTrue(laptop["named"])
         self.assertTrue(next(r for r in now if r["mac"] == "02:00:00:00:03:02")["private_mac"])
 
+    def test_client_address(self):
+        docs = fixture_doc("devices")["data"]
+        laptop = docs[0]
+        self.assertEqual(query.clients(docs)[0]["ip"], "192.0.2.101")
+        # eero lost the IPv4 and gives the link-local address: left out, the GUI asks the router
+        laptop.update(ip="fe80:0:0:0:0:ff:fe00:301", ips=["fe80:0:0:0:0:ff:fe00:301"], ipv4=None)
+        self.assertEqual(query.clients(docs)[0]["ip"], "")
+        laptop.update(ip=None, ips=[], ipv4=None)
+        self.assertEqual(query.clients(docs)[0]["ip"], "")
+        laptop.update(ip="FE80::1", ips=["FE80::1", "2001:db8::301"], ipv4=None)          # a routable IPv6 will do
+        self.assertEqual(query.clients(docs)[0]["ip"], "2001:db8::301")
+        laptop.update(ip="2001:db8::301", ips=["2001:db8::301", "192.0.2.101"], ipv4="192.0.2.101")
+        self.assertEqual(query.clients(docs)[0]["ip"], "192.0.2.101")                   # IPv4 first
+
     def test_name_that_is_only_the_vendor(self):
         docs = fixture_doc("devices")["data"]
         fan = docs[1]

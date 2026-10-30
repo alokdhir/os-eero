@@ -152,6 +152,18 @@ def _no_name(d):
     return re.sub(r'[^0-9a-f]', '', shown.lower()) == re.sub(r'[^0-9a-f]', '', d['mac'].lower())
 
 
+def _address(d):
+    """A client's address as eero knows it: its IPv4, else a routable IPv6, else ''. eero sometimes has no IPv4
+    for a client the router reaches fine, and then gives its link-local fe80:: address as 'ip': that one says
+    nothing, so it is left out (the GUI asks the router's ARP table instead)."""
+    if d.get('ipv4'):
+        return d['ipv4']
+    for a in [d.get('ip')] + list(d.get('ips') or []):
+        if isinstance(a, str) and a and not a.lower().startswith('fe80:'):
+            return a
+    return ''
+
+
 def clients(docs, include_all=False):
     """One row per Wi-Fi client: by default only those connected now.
 
@@ -179,7 +191,7 @@ def clients(docs, include_all=False):
             # eero's own 0-5 connection quality (the bars in the app). Not the link rate: that is the rate of
             # the last frame eero received, so an idle phone reads 6 Mbps; a snapshot of it is noise.
             'quality': conn.get('score_bars') if isinstance(conn.get('score_bars'), int) else None,
-            'ip': d.get('ip') or '',
+            'ip': _address(d),
             'type': (d.get('device_type') or '').replace('_', ' '),
             'maker': d.get('manufacturer') or '',
             'connected': bool(d.get('connected')),

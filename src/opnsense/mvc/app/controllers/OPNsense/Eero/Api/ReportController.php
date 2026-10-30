@@ -72,9 +72,44 @@ class ReportController extends ApiControllerBase
         return $data['devices'];
     }
 
-    /** Loupe's icon, type, name (unless set in the eero app) and vendor on client rows, in place. */
+    private static function isIpv4($ip)
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    }
+
+    /**
+     * The router's IPv4 address for client rows that eero has none for (ip_router: true), in place. eero sometimes
+     * has no IPv4 for a client the router reaches fine; the router's ARP table (core's `interface list arp`,
+     * which configd caches for 30 s) has it. Asked only when a row needs it.
+     */
+    private function routerAddresses(array &$rows)
+    {
+        $missing = array_filter($rows, fn($row) => array_key_exists('ip', $row) && !self::isIpv4($row['ip']));
+        if (empty($missing)) {
+            return;
+        }
+        $arp = json_decode((new Backend())->configdRun('interface list arp json') ?? '', true);
+        $by_mac = [];
+        foreach (is_array($arp) ? $arp : [] as $entry) {
+            if (!empty($entry['mac']) && self::isIpv4($entry['ip'] ?? '')) {
+                $by_mac[strtolower($entry['mac'])] ??= $entry['ip'];
+            }
+        }
+        foreach (array_keys($missing) as $i) {
+            if (isset($by_mac[$rows[$i]['mac']])) {
+                $rows[$i]['ip'] = $by_mac[$rows[$i]['mac']];
+                $rows[$i]['ip_router'] = true;
+            }
+        }
+    }
+
+    /**
+     * The router's address where eero has none, and Loupe's icon, type, name (unless set in the eero app) and
+     * vendor, on client rows, in place.
+     */
     private function decorate(array &$rows)
     {
+        $this->routerAddresses($rows);
         $known = $this->loupeIdentities(array_values(array_unique(array_column($rows, 'mac'))));
         foreach ($rows as &$row) {
             $id = $known[$row['mac']] ?? [];

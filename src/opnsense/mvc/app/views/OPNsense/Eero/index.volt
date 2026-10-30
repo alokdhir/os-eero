@@ -127,6 +127,11 @@ POSSIBILITY OF SUCH DAMAGE.
                 const v = row[column.id];
                 return v === null || v === undefined || v === '' ? dash : esc(v);
             },
+            address: function (column, row) {
+                /* where eero has no IPv4 for a client, the controller gives the router's (ip_router) */
+                const v = formatters.text(column, row);
+                return row.ip_router ? '<span title="{{ lang._('From the router: eero does not report an address for this device') }}">' + v + '</span>' : v;
+            },
             unit: function (column, row) {
                 return unitLabel(row, '<a href="#unit=' + encodeURIComponent(plain(row.id)) + '">' + esc(row.name) + '</a>') + renameButton(row);
             },
@@ -295,7 +300,8 @@ POSSIBILITY OF SUCH DAMAGE.
                       + (c.signal !== null ? ' · ' + esc(c.signal) + ' dBm' : '') + (c.quality !== null ? ' · {{ lang._('quality') }} ' + esc(c.quality) + '/5' : '')
                     : '{{ lang._('Not connected') }}' + (c.last_seen ? ', {{ lang._('last seen') }} ' + esc(new Date(Date.parse(plain(c.last_seen))).toLocaleString()) : '');
                 $d.append($('<h2 class="eero-detail-title"/>').html(icon + esc(c.name)
-                    + ' <small class="text-muted">' + esc([plain(c.type), plain(c.mac) + (c.private_mac ? ' {{ lang._('(private address)') }}' : ''), plain(c.ip)].filter(Boolean).join(' · ')) + '</small>'),
+                    + ' <small class="text-muted">' + esc([plain(c.type), plain(c.mac) + (c.private_mac ? ' {{ lang._('(private address)') }}' : '')].filter(Boolean).join(' · '))
+                    + (c.ip ? ' · ' + formatters.address({id: 'ip'}, c) : '') + '</small>'),
                     $('<p/>').html(now));
 
                 if (!page.history_since) {
@@ -688,7 +694,7 @@ POSSIBILITY OF SUCH DAMAGE.
                 <th data-column-id="band" data-formatter="text" data-min-width="90" data-max-width="130">{{ lang._('Band') }}</th>
                 <th data-column-id="signal" data-formatter="signal" data-min-width="80" data-max-width="110">{{ lang._('Signal') }}</th>
                 <th data-column-id="quality" data-formatter="bars" data-min-width="60" data-max-width="80">{{ lang._('Quality') }}</th>
-                <th data-column-id="ip" data-formatter="text" data-width="10em">{{ lang._('Address') }}</th>
+                <th data-column-id="ip" data-formatter="address" data-width="10em">{{ lang._('Address') }}</th>
                 <th data-column-id="type" data-formatter="text">{{ lang._('Type') }}</th>
                 <th data-column-id="maker" data-formatter="text" data-visible="false">{{ lang._('Maker') }}</th>
                 <th data-column-id="last_seen" data-formatter="seen" data-width="9em">{{ lang._('Last seen') }}</th>
