@@ -37,6 +37,7 @@ VERSION = '/2.2'
 USER_AGENT = 'eero-ios/2026.8.1 (iPhone; iOS 18.5)'     # what eero-api sends; the API expects an app-like agent
 TIMEOUT = 20
 MAX_BODY = 10 * 1024 * 1024
+UPDATE_WAIT = 30 * 60      # no second update request this soon: every unit restarts and eero reports it late
 MAX_RETRY_AFTER = 86400
 
 # keys whose values are credentials (Wi-Fi and guest passwords, Thread network keys); removed from every
@@ -275,3 +276,8 @@ class Client:
     def reboot(self, path):
         """Reboot one unit (its resources.reboot, /2.2/eeros/<id>/reboot) or every unit (<network url>/reboot)."""
         return strip_secrets(self._request('POST', path))
+
+    def install_update(self, path):
+        """Install the waiting firmware update on every unit (the network's resources.updates,
+        <network url>/updates). eero takes the body "" as JSON, as for its other calls without parameters."""
+        return strip_secrets(self._request('POST', path, json_body=''))

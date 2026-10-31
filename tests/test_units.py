@@ -51,6 +51,12 @@ class FakeClient:
             raise self.fail
         return None
 
+    def install_update(self, path):
+        self.calls.append(("update", path, self.token))
+        if self.fail:
+            raise self.fail
+        return None
+
 
 class TestRename(unittest.TestCase):
     def setUp(self):
@@ -136,6 +142,40 @@ class TestRename(unittest.TestCase):
         self.sessions.save("tok-2")
         r = self.reboot("2000002", FakeClient(api.LoginFailed("error.eero.offline")))
         self.assertIn("refused the reboot (error.eero.offline)", r["message"])
+
+
+    def waiting(self, **updates):
+        net = fixture_doc("network")["data"]
+        net["updates"].update({"has_update": True, "can_update_now": True, "update_to_firmware": "v9.9.9-1"}, **updates)
+        self.store.put("network", net, 1000)
+
+    def update(self, client=None):
+        return units.update(client or FakeClient(), self.sessions, self.store, "admin", self.logged.append)
+
+    def test_update(self):
+        c = FakeClient()
+        self.assertIn("No eero network", self.update(c)["message"])
+        self.waiting()
+        self.assertEqual(self.update(c), {"result": "ok"})
+        self.assertEqual(c.calls, [("update", "/2.2/networks/1000001/updates", "tok-1")])
+        self.assertEqual(self.logged, ['update to v9.9.9-1 on every unit in "Example" requested by admin'])
+        self.assertIn("installing it", self.update(c)["message"])                  # asked already: not twice
+        self.assertEqual(len(c.calls), 1)
+
+    def test_update_refused(self):
+        c = FakeClient()
+        for updates, says in (({"has_update": False}, "No update"), ({"can_update_now": False}, "can't be installed"),
+                              ({"update_status": "in_progress"}, "already in progress")):
+            self.waiting(**updates)
+            self.assertIn(says, self.update(c)["message"])
+        self.waiting()
+        self.sessions.clear()
+        self.assertIn("Sign in", self.update(c)["message"])
+        self.assertEqual(c.calls, [])
+        self.sessions.save("tok-2")
+        r = self.update(FakeClient(api.LoginFailed("error.bad")))
+        self.assertIn("refused the update (error.bad)", r["message"])
+        self.assertIsNone(self.store.state().get("update_requested"))              # a failed request can be tried again
 
 
 if __name__ == "__main__":

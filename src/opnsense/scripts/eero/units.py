@@ -27,6 +27,7 @@
 
   units.py rename <unit id> <name> [user]   set the unit's location (the name the eero app shows)
   units.py reboot <unit id>|all [user]      reboot one unit, or every unit in the network
+  units.py update [user]                    install the waiting firmware update (every unit restarts)
 
 Always prints one JSON object ({"result": "ok"} or {"result": "failed", "message": ...}) and exits 0 with
 nothing on stderr, like login.py. One call to eero per request, with the session eerod uses. Each request is
@@ -145,6 +146,36 @@ def reboot(client, sessions, store, target, user='', log=syslog_line):
     return {'result': 'ok'}
 
 
+def update(client, sessions, store, user='', log=syslog_line):
+    """Install the firmware update eero has waiting, if the cached network says there is one it can install now."""
+    net = store.get('network')[1]
+    if not isinstance(net, dict) or not net.get('url'):
+        return failed('No eero network yet. Sign in on the Settings tab first.')
+    updates = net.get('updates') or {}
+    if not updates.get('has_update'):
+        return failed('No update is waiting.')
+    if updates.get('update_status'):
+        return failed('An update is already in progress.')
+    asked = store.state().get('update_requested')
+    if isinstance(asked, (int, float)) and time.time() - asked < api.UPDATE_WAIT:
+        return failed('The update was asked for %d minutes ago. eero is installing it.' % ((time.time() - asked) // 60))
+    if not updates.get('can_update_now'):
+        return failed('eero says this update can\'t be installed now.')
+    path = (net.get('resources') or {}).get('updates') or net['url'].rstrip('/') + '/updates'
+    version = updates.get('update_to_firmware') or updates.get('target_firmware') or 'the update'
+    what = '%s on every unit in "%s"' % (version, net.get('name') or 'the network')
+    if not _signed_in(client, sessions):
+        return failed(explain(api.SessionInvalid('no session'), ''))
+    try:
+        client.install_update(path)
+    except api.EeroError as e:
+        log('update to %s by %s failed: %s' % (what, user or '?', e.code))
+        return failed(explain(e, 'eero refused the update'))
+    store.set_state(update_requested=int(time.time()))     # no second request while eero still says one is waiting
+    log('update to %s requested by %s' % (what, user or '?'))
+    return {'result': 'ok'}
+
+
 def main(argv):
     what = argv[1] if len(argv) > 1 else ''
     args = argv[2:] + ['', '', '']
@@ -158,6 +189,9 @@ def main(argv):
         elif what == 'reboot':
             with Store() as store:
                 result = reboot(client, SessionStore(), store, args[0], args[1])
+        elif what == 'update':
+            with Store() as store:
+                result = update(client, SessionStore(), store, args[0])
         else:
             result = failed('unknown action')
     except Exception as e:                          # never a traceback: configd would log it

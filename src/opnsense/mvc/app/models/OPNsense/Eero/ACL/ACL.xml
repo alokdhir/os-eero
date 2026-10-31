@@ -22,9 +22,10 @@
         </patterns>
     </page-eero-units>
     <page-eero-reboot>
-        <name>eero: reboot units</name>
+        <name>eero: reboot and update units</name>
         <patterns>
             <pattern>api/eero/units/reboot</pattern>
+            <pattern>api/eero/units/update</pattern>
         </patterns>
     </page-eero-reboot>
 </acl>

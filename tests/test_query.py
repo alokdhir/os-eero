@@ -161,6 +161,25 @@ class TestTabs(unittest.TestCase):
         self.assertNotIn("SECRET", json.dumps(groups))
         self.assertEqual(query.network(None), [])
 
+    def test_network_update(self):
+        net, eeros = fixture_doc("network")["data"], fixture_doc("eeros")["data"]
+        updates = {g["title"]: g for g in query.network(net, units=eeros)}["Updates"]
+        self.assertNotIn("install", updates)
+        self.assertEqual(dict(updates["rows"])["Running"], "v7.17.2-139")
+        self.assertEqual(dict(updates["rows"])["Update available"], "No")
+        self.assertRegex(dict(updates["rows"])["Last updated"], r"^20(25-12-31|26-01-0[12]) \d\d:00$")    # local time
+        self.assertEqual(query._local_time("soon"), "soon")
+        eeros[0]["os_version"] = "v7.17.1-5"
+        net["updates"].update(has_update=True, can_update_now=True, update_required=True, update_to_firmware="v9.9.9-1")
+        updates = {g["title"]: g for g in query.network(net, units=eeros)}["Updates"]
+        self.assertTrue(updates["install"])
+        self.assertEqual(dict(updates["rows"])["Running"], "v7.17.2-139 on 2 units, v7.17.1-5 on 1 unit")
+        self.assertEqual(dict(updates["rows"])["Update available"], "v9.9.9-1 (required)")
+        asked = {g["title"]: g for g in query.network(net, units=eeros, update_requested=1000, now=1060)}["Updates"]
+        self.assertNotIn("install", asked)                                           # asked a minute ago
+        later = query.network(net, units=eeros, update_requested=1000, now=1000 + 3600)
+        self.assertTrue({g["title"]: g for g in later}["Updates"]["install"])
+
     def test_network_guest_without_name(self):
         net = fixture_doc("network")["data"]
         net["guest_network"].pop("name")

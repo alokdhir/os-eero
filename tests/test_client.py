@@ -256,6 +256,12 @@ class TestLogin(unittest.TestCase):
         self.assertIsNone(Client(t, TOKEN).reboot(path))
         self.assertEqual((t.calls[0]["method"], t.calls[0]["headers"]["Cookie"]), ("POST", "s=" + TOKEN))
 
+    def test_install_update(self):
+        path = "/2.2/networks/1000001/updates"
+        t = FakeTransport({("POST", path): [Response(200, {}, b'{"meta": {"code": 200}, "data": null}')]})
+        self.assertIsNone(Client(t, TOKEN).install_update(path))
+        self.assertEqual((t.calls[0]["method"], t.calls[0]["json"]), ("POST", ""))
+
 
 if __name__ == "__main__":
     unittest.main()

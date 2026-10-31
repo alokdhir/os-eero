@@ -81,16 +81,24 @@ def client_events(prev, cur, now):
     return events
 
 
+UP_STATES = ('ONLINE', 'UPDATING')     # UPDATING: downloading a firmware update, still serving; it restarts later
+
+
+def is_up(unit):
+    return unit.get('state') in UP_STATES and unit.get('heartbeat_ok') is not False
+
+
 def _online(units):
     """url -> (online, location, why not online, uptime in seconds)."""
     out = {}
     for u in units or []:
         if isinstance(u, dict) and u.get('url'):
             state = u.get('state')
-            up = state == 'ONLINE' and u.get('heartbeat_ok') is not False
-            # eero's own state when it says why (REBOOTING, UPDATING, ...); a unit eero calls ONLINE but hasn't
-            # heard from is a lost contact, not necessarily down
-            why = None if up else ('lost contact' if state == 'ONLINE' else (state or 'unknown').lower())
+            up = is_up(u)
+            # eero's own state when it says why (REBOOTING, ...); a unit eero calls ONLINE but hasn't heard from is
+            # a lost contact, not necessarily down; one UPDATING that eero has stopped hearing from is restarting
+            lost = 'restarting for an update' if state == 'UPDATING' else 'lost contact'
+            why = None if up else (lost if state in UP_STATES else (state or 'unknown').lower())
             uptime = (u.get('uptime') or {}).get('since_last_reboot_s')
             out[u['url']] = (up, u.get('location'), why, uptime if isinstance(uptime, int) else None)
     return out

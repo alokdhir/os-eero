@@ -61,13 +61,22 @@ those now), `/profiles` (150 KB, parental controls), `/diagnostics` (only `{stat
 
 ## What we change
 
-The only changes the plugin makes (decided 2026-10-15): renaming and rebooting units.
+The only changes the plugin makes (decided 2026-10-15; installing updates added 2026-10-31): renaming and
+rebooting units, and installing the firmware update eero has waiting.
 
 | Call | Body | Use |
 |---|---|---|
 | `PUT /2.2/eeros/<id>` (the unit's `url`) | form `location=<name>` | Rename a unit (the name the app shows). From eero-api's `set_location`. Verified 2026-10-15: the next GET returned the new name; eero accepts a name another unit already has |
 | `POST /2.2/eeros/<id>/reboot` (the unit's `resources.reboot`) | none | Reboot one unit. Verified 2026-10-15: accepted at once; the next read had `state: REBOOTING` (still `heartbeat_ok: true`, then false), the unit's link dropped twice in the first 30 s, and it was `ONLINE` with a new `last_reboot` about 3 min later |
 | `POST <network>/reboot` | none | Reboot every unit (~3 min without Wi-Fi). Not tried from the plugin |
+| `POST <network>/updates` (the network's `resources.updates`) | JSON `""` | Install the waiting update on every unit. From eero-api's `apply_update` (marked unverified there). Only sent when the network's `updates` has `has_update` and `can_update_now` and no `update_status` |
+
+Installing an update (first done from the plugin 2026-10-31, 10 units, 7.17.2 to 7.17.3): eero accepted
+the POST at once. The network's `updates` then had `update_status: downloading`, `can_update_now: false`
+and a new `last_update_started`; every unit had `state: UPDATING` and kept serving (status green,
+heartbeat ok). About 4 minutes later `update_status` was `rebooting` and the units stopped checking in;
+most were back on the new firmware within a minute, the last (PoE units) within 3, each with a new
+uptime. After that `has_update` was false and `update_status` null.
 
 A unit that has rebooted can come back as primary: after a reboot test on 2026-10-15, Basement (the unit on the router's own port) was primary.
 
@@ -137,7 +146,7 @@ that list.
 | `wan_type`, `ip_settings.public_ip`, `ip_settings.double_nat` | | |
 | `band_steering`, `wpa3`, `wireless_mode`, `mlo_mode`, `upnp`, `thread`, `homekit.enabled` | | |
 | `guest_network.enabled`, `guest_network.name` | | (not the password) |
-| `updates.has_update`, `target_firmware`, `preferred_update_hour`, `last_update_started` | | |
+| `updates.has_update`, `can_update_now`, `update_required`, `update_to_firmware`, `target_firmware`, `update_status`, `scheduled_update_time`, `preferred_update_hour`, `last_update_started` | `update_status`, `scheduled_update_time` null when idle | Overview; the install button |
 | `speed.down`, `speed.up`, `speed.date` | | Last speed test |
 | `online_eeros_count`, `offline_eeros_count`, `clients.count` | | Summary/widget |
 | `auto_setup_mode`, `timezone` | | |

@@ -28,6 +28,8 @@ POSSIBILITY OF SUCH DAMAGE.
     .eero-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; vertical-align: middle; }
     .eero-bars i { display: block; width: 4px; background: currentColor; border-radius: 1px; }
     .eero-bars i.off { opacity: 0.2; }
+    .eero-updating { color: #2f7fd8; }                 /* the theme's text-info is a grey blue that reads as black in a dot */
+    .eero-restarting { color: #9cc7f2; }               /* down, but only while it restarts for an update */
     /* the rename pencil, as in os-loupe: shown on hover (always on touch screens) */
     .eero-edit { color: #999; cursor: pointer; visibility: hidden; padding-left: 8px; }
     .tabulator-row:hover .eero-edit, #unit_title:hover .eero-edit { visibility: visible; }
@@ -118,9 +120,14 @@ POSSIBILITY OF SUCH DAMAGE.
             return canRename ? '<i class="fa fa-pencil eero-edit" title="{{ lang._('Rename this unit') }}" data-id="' + esc(row.id)
                 + '" data-name="' + esc(row.name) + '"></i>' : '';
         }
+        /* a dot before the name, as in the status line: green online, blue updating (still serving), light blue
+           restarting for an update, red offline */
         function unitLabel(row, name) {
-            return name + (row.primary ? ' <span class="text-muted">({{ lang._('primary') }})</span>' : '')
-                + (row.online ? '' : ' <span class="label label-danger">{{ lang._('Offline') }}</span>');
+            const [cls, tip] = row.updating
+                ? (row.online ? ['eero-updating', '{{ lang._('Online, updating its firmware') }}'] : ['eero-restarting', '{{ lang._('Restarting for a firmware update') }}'])
+                : (row.online ? ['text-success', '{{ lang._('Online') }}'] : ['text-danger', '{{ lang._('Offline') }}']);
+            return '<i class="fa fa-circle ' + cls + '" title="' + tip + '"></i>&nbsp; ' + name
+                + (row.primary ? ' <span class="text-muted">({{ lang._('primary') }})</span>' : '');
         }
         const formatters = {
             text: function (column, row) {
@@ -436,8 +443,12 @@ POSSIBILITY OF SUCH DAMAGE.
                     g.rows.forEach(function (r) {
                         tbody.append($('<tr/>').append($('<td style="width: 30%"/>').text(plain(r[0])), $('<td/>').text(plain(r[1]))));
                     });
-                    box.append($('<h4/>').text(plain(g.title)),
-                        $('<table class="table table-striped table-condensed" style="margin-bottom: 20px"/>').append(tbody));
+                    box.append($('<h4/>').text(plain(g.title)));
+                    if (g.install && canReboot) {
+                        box.append($('<p/>').append($('<button type="button" class="btn btn-default btn-xs eero-update"/>')
+                            .html('<i class="fa fa-download"></i> {{ lang._('Install the update now') }}')));
+                    }
+                    box.append($('<table class="table table-striped table-condensed" style="margin-bottom: 20px"/>').append(tbody));
                 });
                 if (canReboot) {
                     box.prepend($('<p/>').append($('<button type="button" class="btn btn-default btn-xs eero-reboot" data-id="all"/>')
@@ -618,6 +629,28 @@ POSSIBILITY OF SUCH DAMAGE.
                             message: failure ? $('<div/>').text(plain(failure)) : '{{ lang._('eero is restarting it now. Units show as offline here once eero reports it, which can take a minute or two.') }}',
                             buttons: [{label: '{{ lang._('Close') }}', action: dlg => dlg.close()}]
                         });
+                    });
+                }
+            });
+        });
+        /* install the waiting firmware update: like rebooting every unit, so the same warning */
+        $(document).on('click', '.eero-update', function () {
+            BootstrapDialog.confirm({
+                title: '{{ lang._('Install the update now') }}',
+                message: '{{ lang._('eero installs the update on every unit, and each one restarts. Wi-Fi goes down everywhere, and anything plugged into an eero loses its connection, for several minutes.') }}',
+                type: BootstrapDialog.TYPE_DANGER,
+                btnOKLabel: '{{ lang._('Install') }}',
+                btnOKClass: 'btn-danger',
+                callback: function (yes) {
+                    if (!yes) return;
+                    post('/api/eero/units/update', {}, function (failure) {
+                        BootstrapDialog.show({
+                            type: failure ? BootstrapDialog.TYPE_DANGER : BootstrapDialog.TYPE_INFO,
+                            title: failure ? '{{ lang._('Not installed') }}' : '{{ lang._('Installing') }}',
+                            message: failure ? $('<div/>').text(plain(failure)) : '{{ lang._('eero is installing the update now. Units show as offline here while they restart, and the new firmware once eero reports it.') }}',
+                            buttons: [{label: '{{ lang._('Close') }}', action: dlg => dlg.close()}]
+                        });
+                        if (!failure) showNetwork();
                     });
                 }
             });

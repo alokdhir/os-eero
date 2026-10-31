@@ -122,6 +122,16 @@ class TestUnitEvents(unittest.TestCase):
         self.assertEqual(unit_events(up, quiet, T), [(T, url, "Garage", "offline", "lost contact")])
         self.assertEqual(unit_events(quiet, up, T + 60), [(T + 60, url, "Garage", "online", None)])
 
+    def test_updating_is_not_offline(self):
+        """While it downloads an update eero says UPDATING and the unit still serves: no event until it restarts."""
+        up, updating, restarting = units(), units(), units()
+        for u in updating + restarting:
+            u["state"] = "UPDATING"
+        restarting[1]["heartbeat_ok"] = False
+        self.assertEqual(unit_events(up, updating, T), [])
+        self.assertEqual(unit_events(updating, restarting, T),
+                         [(T, up[1]["url"], "Garage", "offline", "restarting for an update")])
+
     def test_unit_removed_or_added(self):
         before, after = units(), units()
         gone = after.pop(2)

@@ -15,13 +15,13 @@ which unit it's on, and the network's settings.
   the time it spent on each unit and its moves between them; *Recent moves* lists the latest moves
   across all clients.
 - **Overview**: the eero network's settings and health, and which unit is primary: bridge or
-  router mode, DHCP and DNS, band steering, WPA3, guest network, updates, last speed test. Reboot
-  all units from here.
+  router mode, DHCP and DNS, band steering, WPA3, guest network, firmware and updates, last speed
+  test. Reboot all units from here, or install a waiting firmware update.
 - **Dashboard widget**: status, units online and Wi-Fi clients.
 
 Looking is one privilege (*eero*). Settings and the eero account (*eero: settings and account*), renaming
-(*eero: rename units*) and rebooting (*eero: reboot units*) each have their own, under System → Access →
-Users or Groups. Renames and reboots are logged with the user who asked.
+(*eero: rename units*) and rebooting or updating (*eero: reboot and update units*) each have their own,
+under System → Access → Users or Groups. Renames, reboots and updates are logged with the user who asked.
 
 ## Better with Loupe
 

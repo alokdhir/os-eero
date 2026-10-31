@@ -33,6 +33,8 @@
   moves <hours>          recent moves (roams and band changes) across all clients
 """
 
+import collections
+import datetime
 import json
 import os
 import re
@@ -41,9 +43,10 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from lib import client as api                  # noqa: E402
 from lib import store as cache                 # noqa: E402
 from lib import config                         # noqa: E402
-from lib.history import client_name, readable  # noqa: E402
+from lib.history import client_name, is_up, readable  # noqa: E402
 from lib.session import SessionStore           # noqa: E402
 
 PIDFILE = '/var/run/eero.pid'
@@ -82,6 +85,14 @@ def _cached(kind, db_path=cache.PATH):
         return None
 
 
+def _state(key, db_path=cache.PATH):
+    try:
+        with cache.Store(db_path, readonly=True) as s:
+            return s.state().get(key)
+    except Exception:
+        return None
+
+
 def _unit_id(url):
     return (url or '').rstrip('/').rsplit('/', 1)[-1]
 
@@ -105,7 +116,8 @@ def units(docs):
             'id': _unit_id(u.get('url')),
             'name': u.get('location') or u.get('serial') or '?',
             'model': u.get('model') or '',
-            'online': u.get('state') == 'ONLINE' and u.get('heartbeat_ok') is not False,
+            'online': is_up(u),
+            'updating': u.get('state') == 'UPDATING',
             'ip': u.get('ip_address') or '',
             'backhaul': backhaul,
             'mesh': u.get('mesh_quality_bars'),
@@ -205,8 +217,18 @@ def _yes(v):
     return None if v is None else ('Yes' if v else 'No')
 
 
-def network(net, thread=None, speedtests=None, units=None):
-    """The Overview tab: [{'title': ..., 'rows': [[label, value], ...]}, ...]; values are plain text."""
+def _local_time(iso):
+    """eero's UTC timestamps (2026-01-01T03:00:00.000Z) as the router's local time; anything else as it is."""
+    try:
+        return datetime.datetime.fromisoformat(iso.replace('Z', '+00:00')).astimezone().strftime('%Y-%m-%d %H:%M')
+    except (AttributeError, ValueError):
+        return iso
+
+
+def network(net, thread=None, speedtests=None, units=None, update_requested=None, now=None):
+    """The Overview tab: [{'title': ..., 'rows': [[label, value], ...]}, ...]; values are plain text. The
+    Updates group has 'install': true when eero has an update it can install now and nobody asked for it in the
+    last half hour (units.py update)."""
     if not isinstance(net, dict):
         return []
     health = net.get('health') or {}
@@ -218,6 +240,12 @@ def network(net, thread=None, speedtests=None, units=None):
     mode = (net.get('connection') or {}).get('mode')
     bridged = net.get('gateway') == 'bridged' or mode == 'bridged'
     primary = (u for u in units or [] if isinstance(u, dict) and u.get('is_primary_node'))
+    running = collections.Counter(u.get('os_version') for u in units or [] if isinstance(u, dict))
+    running.pop(None, None)
+    now = time.time() if now is None else now
+    asked = update_requested if isinstance(update_requested, (int, float)) else None
+    asked = asked if asked and now - asked < api.UPDATE_WAIT else None
+    waiting = updates.get('update_to_firmware') or updates.get('target_firmware') or 'Yes'
 
     def speed_text(v):
         return '%s %s' % (v.get('value'), v.get('units') or 'Mbps') if isinstance(v, dict) and v.get('value') is not None else None
@@ -252,11 +280,15 @@ def network(net, thread=None, speedtests=None, units=None):
             ('Clients', (net.get('clients') or {}).get('count')),
         ]),
         ('Updates', [
-            ('Firmware', updates.get('target_firmware')),
-            ('Update available', _yes(updates.get('has_update'))),
+            ('Running', ', '.join(v if len(running) == 1 else '%s on %d unit%s' % (v, n, '' if n == 1 else 's')
+                                  for v, n in running.most_common())),
+            ('Update available', ('%s (required)' % waiting if updates.get('update_required') else waiting)
+             if updates.get('has_update') else _yes(updates.get('has_update'))),
+            ('Update status', updates.get('update_status')),
+            ('Scheduled for', updates.get('scheduled_update_time')),
             ('Preferred update hour', ('%02d:00' % updates['preferred_update_hour'])
              if isinstance(updates.get('preferred_update_hour'), int) else None),
-            ('Last update started', updates.get('last_update_started')),
+            ('Last updated', _local_time(updates.get('last_update_started'))),
             ('Automatic updates', net.get('auto_setup_mode')),
         ]),
         ('Speed test (eero)', [
@@ -271,6 +303,8 @@ def network(net, thread=None, speedtests=None, units=None):
         rows = [[label, str(value)] for label, value in rows if value not in (None, '')]
         if rows:
             out.append({'title': title, 'rows': rows})
+    if updates.get('has_update') and updates.get('can_update_now') and not updates.get('update_status') and not asked:
+        next(g for g in out if g['title'] == 'Updates')['install'] = True
     return out
 
 
@@ -517,7 +551,8 @@ def main(argv):
     elif what == 'clients':
         result = clients(_cached('clients'), include_all=len(argv) > 2 and argv[2] == 'all')
     elif what == 'network':
-        result = network(_cached('network'), _cached('thread'), _cached('speedtest'), _cached('units'))
+        result = network(_cached('network'), _cached('thread'), _cached('speedtest'), _cached('units'),
+                         _state('update_requested'))
     elif what == 'client':
         result = client(argv[2] if len(argv) > 2 else '', hours_arg(argv[3] if len(argv) > 3 else 24))
     elif what == 'moves':

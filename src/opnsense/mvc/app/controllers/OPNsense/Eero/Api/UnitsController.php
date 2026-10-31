@@ -34,8 +34,9 @@ use OPNsense\Core\Backend;
 
 /**
  * Changes to eero units: the only changes the plugin makes to eero. Each has a privilege of its own (ACL
- * page-eero-units for renaming, page-eero-reboot for rebooting), so users who may only look at the page can't
- * change anything. The GUI user is passed on, and units.py logs who asked for what.
+ * page-eero-units for renaming, page-eero-reboot for rebooting and installing a firmware update, which restarts
+ * every unit), so users who may only look at the page can't change anything. The GUI user is passed on, and
+ * units.py logs who asked for what.
  */
 class UnitsController extends ApiControllerBase
 {
@@ -66,6 +67,15 @@ class UnitsController extends ApiControllerBase
             return ['result' => 'failed', 'message' => gettext('Unknown unit.')];
         }
         return $this->run('eero reboot', [$id, $this->getUserName()]);
+    }
+
+    /** Install the firmware update eero has waiting: every unit restarts. */
+    public function updateAction()
+    {
+        if (!$this->request->isPost()) {
+            return ['result' => 'failed'];
+        }
+        return $this->run('eero update', [$this->getUserName()]);
     }
 
     private function run($action, array $params)
