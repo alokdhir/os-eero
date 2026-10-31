@@ -3,6 +3,8 @@
 See what your eero mesh Wi-Fi is doing from the OPNsense GUI: every eero unit, every client and
 which unit it's on, and the network's settings.
 
+![A unit's page: its clients, radios, ports, status changes and the clients that moved on and off it](docs/images/unit.png)
+
 ## What it shows
 
 - **Units**: each eero unit: online or not, model, IP, wired or wireless backhaul (and which
@@ -22,6 +24,34 @@ which unit it's on, and the network's settings.
 Looking is one privilege (*eero*). Settings and the eero account (*eero: settings and account*), renaming
 (*eero: rename units*) and rebooting or updating (*eero: reboot and update units*) each have their own,
 under System → Access → Users or Groups. Renames, reboots and updates are logged with the user who asked.
+
+## Screenshots
+
+All from a real home network, with people's names blurred. The address bar shows the router's IP
+address, not its host name, on purpose: it keeps the domain out of the pictures.
+
+**Units**: every eero unit, its backhaul, mesh quality and clients.
+
+![Units list](docs/images/units.png)
+
+**Clients**: every Wi-Fi client, the unit it's on, band, signal and quality, named and typed by
+[Loupe](https://github.com/alokdhir/os-loupe) when it's installed.
+
+![Clients list](docs/images/clients.png)
+
+**A client**: its time on each unit and its moves between them.
+
+![A phone's page: time on each unit over the last day, and its moves](docs/images/client.png)
+
+**Overview**: the network's settings, health and firmware.
+
+![Overview](docs/images/overview.png)
+
+**Dashboard widget** (here next to Loupe's) and **Settings**.
+
+![The OPNsense dashboard with the eero widget](docs/images/dashboard.png)
+
+![Settings: enable, history to keep, and the eero account](docs/images/settings.png)
 
 ## Better with Loupe
 
