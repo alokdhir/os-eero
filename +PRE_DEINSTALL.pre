@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# stop eerod before its files go (after an upgrade, +POST_INSTALL starts it again)
+service eero onestop >/dev/null 2>&1 || :

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Python's byte-code caches are not in the package: remove them so the directory goes too
+rm -rf /usr/local/opnsense/scripts/eero/__pycache__ /usr/local/opnsense/scripts/eero/lib/__pycache__
+rmdir /usr/local/opnsense/scripts/eero/lib /usr/local/opnsense/scripts/eero 2>/dev/null || :

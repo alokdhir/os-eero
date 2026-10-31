@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# an upgrade leaves the old eerod running: restart it with the new code (only if it is enabled)
+if service eero enabled; then
+	service eero restart
+fi
