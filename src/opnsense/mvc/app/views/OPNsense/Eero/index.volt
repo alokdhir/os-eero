@@ -170,10 +170,11 @@ POSSIBILITY OF SUCH DAMAGE.
             signal: function (column, row) {
                 const v = parseInt(row.signal);
                 if (isNaN(v)) return dash;
-                /* how well the eero hears the client: -67 or better is good for anything; to -80 is fine for
-                   devices that send little (shades, fans, plugs); below -80 is poor */
-                const cls = v >= -67 ? 'text-success' : (v >= -80 ? 'text-warning' : 'text-danger');
-                const tip = v >= -67 ? '{{ lang._('Good') }}' : (v >= -80 ? '{{ lang._('Fair: fine for devices that send little') }}' : '{{ lang._('Poor') }}');
+                /* how well the eero hears the client: -70 or better is good for anything; to -85 is fine for
+                   devices that send little (locks, shades, plugs: eero often gives those 4-5 bars at -80); below
+                   -85 connections start to fail */
+                const cls = v >= -70 ? 'text-success' : (v >= -85 ? 'text-warning' : 'text-danger');
+                const tip = v >= -70 ? '{{ lang._('Good') }}' : (v >= -85 ? '{{ lang._('Fair: fine for devices that send little') }}' : '{{ lang._('Poor') }}');
                 return '<span title="' + tip + '"><i class="fa fa-circle ' + cls + '"></i>&nbsp; ' + v + ' dBm</span>';
             },
             when: function (column, row) {
