@@ -99,7 +99,9 @@ class RequestsTransport:
 
     def __init__(self):
         import requests
+        import urllib3
         self._requests = requests
+        self._errors = (requests.RequestException, urllib3.exceptions.HTTPError)   # the body is read from urllib3
         self._session = requests.Session()
         self._session.cookies.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
 
@@ -111,7 +113,7 @@ class RequestsTransport:
                 body = r.raw.read(MAX_BODY + 1, decode_content=True)
             finally:
                 r.close()
-        except self._requests.RequestException as e:
+        except self._errors as e:
             raise TransportError('network: %s' % type(e).__name__) from None
         return Response(r.status_code, r.headers, body)
 

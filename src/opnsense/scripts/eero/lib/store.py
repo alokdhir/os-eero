@@ -34,6 +34,8 @@ import json
 import os
 import sqlite3
 
+from .history import unit_id
+
 PATH = '/var/db/eero/eero.db'
 
 SCHEMA = """
@@ -76,7 +78,7 @@ class Store:
         ids = {}
         for u in json.loads(row[0]) if row else []:
             if isinstance(u, dict) and u.get('location') and u.get('url'):
-                ids[u['location']] = u['url'].rstrip('/').rsplit('/', 1)[-1]
+                ids[u['location']] = unit_id(u['url'])
         with self.db:
             self.db.execute('ALTER TABLE client_events ADD COLUMN from_id TEXT')
             self.db.execute('ALTER TABLE client_events ADD COLUMN to_id TEXT')

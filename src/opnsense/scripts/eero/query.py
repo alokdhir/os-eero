@@ -46,7 +46,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lib import client as api                  # noqa: E402
 from lib import store as cache                 # noqa: E402
 from lib import config                         # noqa: E402
-from lib.history import client_name, is_up, readable  # noqa: E402
+from lib.history import UNIT_ID, client_name, is_up, readable, unit_id  # noqa: E402
 from lib.session import SessionStore           # noqa: E402
 
 PIDFILE = '/var/run/eero.pid'
@@ -94,7 +94,7 @@ def _state(key, db_path=cache.PATH):
 
 
 def _unit_id(url):
-    return (url or '').rstrip('/').rsplit('/', 1)[-1]
+    return unit_id(url) or ''
 
 
 BACKHAUL = {'WIRED': 'Wired', 'WIRED_POE': 'Wired (PoE)', 'WIRELESS': 'Wireless'}
@@ -340,11 +340,11 @@ def _named(events, names):
 
 
 def _to(e):
-    return e.get('to_id', e.get('to_unit'))
+    return e.get('to_id') or e.get('to_unit')       # None for some 1.0 rows: the name then
 
 
 def _from(e):
-    return e.get('from_id', e.get('from_unit'))
+    return e.get('from_id') or e.get('from_unit')
 
 
 def time_on_units(events, start, now, location):
@@ -417,16 +417,29 @@ def client(mac, hours, db_path=cache.PATH, now=None):
     }
 
 
+def as_now(events, cdocs):
+    """Each move with its client as the Clients tab shows it now (its current name, type, maker), so the page
+    lists them like the clients; the recorded name only for a client eero no longer knows."""
+    current = {c['mac']: c for c in clients(cdocs, include_all=True)}
+    out = []
+    for i, e in enumerate(events):
+        c = current.get(e['mac'], {})
+        out.append({**e, 'id': i, 'named': c.get('named', False), 'vendor_name': c.get('vendor_name', False),
+                    'type': c.get('type', ''), 'maker': c.get('maker', ''),
+                    'name': c.get('name') or e.get('name') or e['mac']})
+    return out
+
+
 def moves(hours, db_path=cache.PATH, now=None, limit=2000):
     """Roams and band changes across all clients, newest first."""
     now = int(now if now is not None else time.time())
     try:
         with cache.Store(db_path, readonly=True) as s:
             events = s.client_events(now - int(hours * 3600), limit=limit, events=('roamed', 'band'))
-            udocs = s.get('units')[1]
+            udocs, cdocs = s.get('units')[1], s.get('clients')[1]
     except Exception:
         return []
-    return _named(events, _unit_names(udocs))
+    return as_now(_named(events, _unit_names(udocs)), cdocs)
 
 
 BANDS = {'band_2_4GHz': '2.4 GHz', 'band_5GHz': '5 GHz', 'band_5GHz_full': '5 GHz', 'band_5GHz_low': '5 GHz (low)',
@@ -469,7 +482,7 @@ def unit(uid, db_path=cache.PATH, now=None, keep_hours=None):
     """One unit's page: its details, radios, ports, clients on it now, and its history: status changes over all
     the history kept, client moves over the last day."""
     uid = str(uid or '').strip()
-    if not re.match(r'^[0-9A-Za-z_-]{1,40}$', uid):
+    if not UNIT_ID.match(uid):
         return {'error': 'invalid unit'}
     now = int(now if now is not None else time.time())
     keep_hours = keep_hours or max_hours()
@@ -521,7 +534,7 @@ def unit(uid, db_path=cache.PATH, now=None, keep_hours=None):
         'days': keep_hours // 24,
         'history_since': since,
         'events': [e for e in uevents if e['unit'] == url],
-        'moves': [e for e in _named(cevents, _unit_names(udocs)) if uid in (e['from_id'], e['to_id'])][:500],
+        'moves': as_now([e for e in _named(cevents, _unit_names(udocs)) if uid in (e['from_id'], e['to_id'])][:500], cdocs),
     }
 
 

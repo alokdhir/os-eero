@@ -36,6 +36,9 @@ use OPNsense\Core\Backend;
  */
 class ReportController extends ApiControllerBase
 {
+    /* a unit's id, as lib/history.py UNIT_ID */
+    private const UNIT_ID = '/^[0-9A-Za-z_-]{1,40}$/';
+
     /* what each grid's search box matches: the columns it shows */
     private const SEARCH = [
         'units' => ['name', 'model', 'ip', 'backhaul', 'firmware'],
@@ -168,47 +171,28 @@ class ReportController extends ApiControllerBase
     public function unitAction($id = '')
     {
         $id = rawurldecode($id);
-        if (!preg_match('/^[0-9A-Za-z_-]{1,40}$/', $id)) {
+        if (!preg_match(self::UNIT_ID, $id)) {
             return ['error' => 'invalid unit'];
         }
         $page = $this->query(['unit', $id]);
-        if (!empty($page['clients'])) {
-            $this->decorate($page['clients']);
-        }
-        if (!empty($page['moves'])) {
-            $page['moves'] = $this->named($page['moves']);
+        /* the clients on it and the moves (each with its client as it is now, from query.py) get Loupe's names in
+           one pass: one identities and one ARP lookup for the page */
+        $clients = $page['clients'] ?? [];
+        $moves = $page['moves'] ?? [];
+        $rows = array_merge($clients, $moves);
+        if (!empty($rows)) {
+            $this->decorate($rows);
+            $page['clients'] = array_slice($rows, 0, count($clients));
+            $page['moves'] = array_slice($rows, count($clients));
         }
         return $page;
     }
 
-    /** Client events named and iconed like the Clients grid (by the client's current name, not the one recorded). */
-    private function named(array $events)
-    {
-        $current = [];
-        foreach ($this->query(['clients', 'all']) as $c) {
-            $current[$c['mac']] = $c;
-        }
-        $rows = [];
-        foreach ($events as $i => $e) {
-            $c = $current[$e['mac']] ?? [];
-            /* array_merge, not +: the event's own (recorded) name must give way to the current one */
-            $rows[] = array_merge($e, [
-                'id' => $i,
-                'named' => $c['named'] ?? false,
-                'vendor_name' => $c['vendor_name'] ?? false,
-                'type' => $c['type'] ?? '',
-                'maker' => $c['maker'] ?? '',
-                'name' => $c['name'] ?? ($e['name'] ?? $e['mac']),
-            ]);
-        }
-        $this->decorate($rows);
-        return $rows;
-    }
-
-    /** Recent moves across all clients, named and iconed like the Clients grid. */
+    /** Recent moves across all clients, named and iconed like the Clients grid (by the client's current name). */
     public function searchMovesAction()
     {
-        $rows = $this->named($this->query(['moves', $this->hours($this->request->getPost('hours', null, 24))]));
+        $rows = $this->query(['moves', $this->hours($this->request->getPost('hours', null, 24))]);
+        $this->decorate($rows);
         // no default sort key: keep the query's newest-first order (a default key would sort ascending)
         return $this->searchRecordsetBase($rows, self::SEARCH['moves'], null, null, SORT_NUMERIC);
     }

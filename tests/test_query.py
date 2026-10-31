@@ -244,6 +244,17 @@ class TestHistory(unittest.TestCase):
             page = query.client("02:00:00:00:03:02", 24, db_path=db, now=5000)
             self.assertEqual([t["unit"] for t in page["time"]], ["Shop", "Hallway"])
             self.assertEqual(query.moves(24, db_path=db, now=5000)[-1]["to_unit"], "Shop")
+            # each move carries its client as the Clients tab shows it now, not the name recorded ("p", "r")
+            current = {c["mac"]: c["name"] for c in query.clients(fixture_doc("devices")["data"], include_all=True)}
+            for m in shop["moves"] + query.moves(24, db_path=db, now=5000):
+                self.assertEqual(m["name"], current[m["mac"]])
+                self.assertIn("type", m)
+
+    def test_rows_without_unit_ids_use_the_name(self):
+        """Rows migrated from 1.0 may have no unit id: the recorded unit name stands in, not 'not connected'."""
+        self.assertEqual(query._to({"to_id": None, "to_unit": "Garage"}), "Garage")
+        self.assertEqual(query._from({"from_id": None, "from_unit": "Patio"}), "Patio")
+        self.assertEqual(query._to({"to_id": "2000001", "to_unit": "Garage"}), "2000001")
 
     def test_client_and_moves(self):
         with tempfile.TemporaryDirectory() as d:

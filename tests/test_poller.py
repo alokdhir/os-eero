@@ -146,12 +146,35 @@ class TestPoller(unittest.TestCase):
         self.run_for(122, 3)
         self.assertEqual(self.store.state()["history_since"], 2)
 
-    def test_no_history_across_a_long_gap(self):
+    def test_long_gap_closes_clients_at_its_start(self):
+        """Across a long gap (the daemon was stopped) nobody knows where clients were: they are disconnected at
+        the last snapshot before it and connected again at the first after it, not left on their old unit."""
         self.sessions.save("tok")
         self.run_for(0, 10)
+        before = self.store.get("clients")[0]
+        gone = self.made[0].clients_doc[0]["mac"]
         self.made[0].clients_doc[0]["connected"] = False
         self.run_for(5000, 3)                 # e.g. the daemon was stopped for an hour
-        self.assertEqual(self.store.client_events(0), [])
+        events = self.store.client_events(0)
+        closed = {e["mac"] for e in events if e["event"] == "disconnected" and e["ts"] == int(before)}
+        opened = {e["mac"] for e in events if e["event"] == "connected" and e["ts"] >= 5000}
+        self.assertIn(gone, closed)
+        self.assertNotIn(gone, opened)
+        self.assertEqual(opened, closed - {gone})
+        self.assertFalse([e for e in events if e["event"] == "roamed"])
+
+    def test_another_account_starts_without_the_old_lists(self):
+        """Signing in to another account (another network): its first lists aren't compared with the old ones."""
+        self.sessions.save("tok")
+        self.run_for(0, 10)
+        self.store.set_state(network={"url": "/2.2/networks/9999999", "name": "Old"})   # as if another account's
+        self.sessions.save("tok2")
+        self.poller.step(100)                                      # the new session: networks first
+        self.made[-1].clients_doc = self.made[-1].clients_doc[1:]  # a different list of clients
+        self.made[-1].units = lambda url: []                       # and of units
+        self.run_for(101, 10)
+        self.assertEqual(self.store.client_events(0), [])          # nothing compared with the old account's lists
+        self.assertEqual(self.store.unit_events(0), [])
 
     def test_session_ended_by_eero(self):
         self.sessions.save("tok")

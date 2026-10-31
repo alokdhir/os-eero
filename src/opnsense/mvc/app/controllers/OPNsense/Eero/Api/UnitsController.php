@@ -40,6 +40,9 @@ use OPNsense\Core\Backend;
  */
 class UnitsController extends ApiControllerBase
 {
+    /* a unit's id, as lib/history.py UNIT_ID */
+    private const UNIT_ID = '/^[0-9A-Za-z_-]{1,40}$/';
+
     public function renameAction()
     {
         if (!$this->request->isPost()) {
@@ -47,7 +50,7 @@ class UnitsController extends ApiControllerBase
         }
         $id = (string)$this->request->getPost('id', null, '');
         $name = trim((string)$this->request->getPost('name', null, ''));
-        if (!preg_match('/^[0-9A-Za-z_-]{1,40}$/', $id)) {
+        if (!preg_match(self::UNIT_ID, $id)) {
             return ['result' => 'failed', 'message' => gettext('Unknown unit.')];
         }
         if ($name === '' || mb_strlen($name) > 40) {
@@ -63,7 +66,7 @@ class UnitsController extends ApiControllerBase
             return ['result' => 'failed'];
         }
         $id = (string)$this->request->getPost('id', null, '');
-        if ($id !== 'all' && !preg_match('/^[0-9A-Za-z_-]{1,40}$/', $id)) {
+        if ($id !== 'all' && !preg_match(self::UNIT_ID, $id)) {
             return ['result' => 'failed', 'message' => gettext('Unknown unit.')];
         }
         return $this->run('eero reboot', [$id, $this->getUserName()]);

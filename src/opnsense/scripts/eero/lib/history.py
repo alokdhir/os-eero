@@ -29,6 +29,8 @@ Pure functions over the client and unit lists as the API returns them (see docs/
 source.url, its band interface.frequency; a unit is online when its state is ONLINE and its heartbeat is ok.
 """
 
+import re
+
 
 def readable(name):
     """`name` unless it is binary junk: some devices send raw bytes as their DHCP host name (a dishwasher's
@@ -39,6 +41,9 @@ def readable(name):
 def client_name(d):
     names = (d.get('nickname'), readable(d.get('display_name')), readable(d.get('hostname')), d.get('manufacturer'), d.get('mac'))
     return next((n for n in names if n), '?')
+
+
+UNIT_ID = re.compile(r'^[0-9A-Za-z_-]{1,40}$')      # what a unit's id looks like (the GUI and configd pass it)
 
 
 def unit_id(url):

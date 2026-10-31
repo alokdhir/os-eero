@@ -65,9 +65,11 @@ POSSIBILITY OF SUCH DAMAGE.
            tab's views #moves and #client=<mac>. Apply only belongs to Settings. */
         let clientView = {view: 'list', mac: null};
         let unitView = null;                        /* a unit's id while its page is shown */
+        /* the address is anyone's typing: a stray % or a quote must not stop the page */
+        const decode = s => { try { return decodeURIComponent(s); } catch (e) { return ''; } };
         function tabOf(hash) {
             if (hash.startsWith('#unit=')) {
-                unitView = decodeURIComponent(hash.slice(6));
+                unitView = decode(hash.slice(6));
                 return '#units';
             }
             if (hash === '#units') {
@@ -77,7 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
                 return '#overview';                 /* the tab's old name */
             }
             if (hash.startsWith('#client=')) {
-                clientView = {view: 'client', mac: decodeURIComponent(hash.slice(8)).toLowerCase()};
+                clientView = {view: 'client', mac: decode(hash.slice(8)).toLowerCase()};
                 return '#clients';
             }
             if (hash === '#moves') {
@@ -87,7 +89,7 @@ POSSIBILITY OF SUCH DAMAGE.
             if (hash === '#clients') {
                 clientView = {view: 'list', mac: null};
             }
-            return $('#maintabs a[href="' + hash + '"]').length ? hash : '#units';
+            return $('#maintabs a').filter((i, a) => a.getAttribute('href') === hash).length ? hash : '#units';
         }
         function show(hash) {
             const tab = tabOf(hash || '');

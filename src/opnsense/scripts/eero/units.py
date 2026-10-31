@@ -37,7 +37,6 @@ gets the new name at once, so the page shows it before eerod's next poll.
 
 import json
 import os
-import re
 import sys
 import syslog
 import time
@@ -45,11 +44,10 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from lib import client as api                  # noqa: E402
-from lib.history import readable               # noqa: E402
+from lib.history import UNIT_ID, readable, unit_id  # noqa: E402
 from lib.session import SessionStore           # noqa: E402
 from lib.store import Store                    # noqa: E402
 
-UNIT_ID = re.compile(r'^[0-9A-Za-z_-]{1,40}$')
 MAX_NAME = 40
 
 
@@ -76,7 +74,7 @@ def syslog_line(text):
 
 def _unit(units, uid):
     units = [u for u in units or [] if isinstance(u, dict)]
-    return next((u for u in units if (u.get('url') or '').rstrip('/').rsplit('/', 1)[-1] == uid), None)
+    return next((u for u in units if unit_id(u.get('url')) == uid), None)
 
 
 def _signed_in(client, sessions):

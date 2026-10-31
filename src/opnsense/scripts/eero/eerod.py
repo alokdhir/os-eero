@@ -55,6 +55,12 @@ def main():
         nonlocal running
         running = False
 
+    def pause(seconds):                         # a second at a time: stop and restart don't wait for it
+        for _ in range(seconds):
+            if not running:
+                return
+            time.sleep(1)
+
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
@@ -71,14 +77,14 @@ def main():
             except Exception as e:                  # keep running; daemon(8) would restart us anyway
                 syslog.syslog(syslog.LOG_ERR, 'internal error: %s: %s' % (type(e).__name__, e))
                 what = 'error'
-                time.sleep(30)
+                pause(30)
             now = CONDITIONS.get(what, 'ok' if what.startswith('fetched') else condition)
             if now != condition:
                 message = store.state().get('message')
                 syslog.syslog(syslog.LOG_NOTICE if now == 'ok' else syslog.LOG_WARNING,
                               'polling eero' if now == 'ok' else '%s: %s' % (now, message))
                 condition = now
-            time.sleep(5 if what == 'signed out' else 1)
+            pause(5 if what == 'signed out' else 1)
     finally:
         store.set_state(status='stopped', message=None)
         store.close()

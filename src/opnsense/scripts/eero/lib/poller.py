@@ -40,7 +40,7 @@ MAX_PER_MINUTE = 12          # all requests together
 BACKOFF_MIN = 30
 BACKOFF_MAX = 1800
 SKIP_UNAVAILABLE = 86400     # a kind eero refuses (403/404) is not asked for again for a day
-EVENT_GAP = 600              # no events across a gap longer than this (the daemon was stopped)
+EVENT_GAP = 600              # a longer gap (the daemon was stopped): clients are closed at its start, reopened after
 PRUNE_EVERY = 3600
 
 
@@ -128,12 +128,15 @@ class Poller:
     def _keep(self, kind, doc, now):
         if kind in ('units', 'clients'):
             prev_at, prev = self.store.get(kind)
-            if prev is not None and prev_at is not None and now - prev_at <= EVENT_GAP:
-                if kind == 'clients':
+            if prev is not None and prev_at is not None:
+                if kind == 'units':                 # a unit's state now vs then; a reboot in between shows in its uptime
+                    self.store.add_unit_events(unit_events(prev, doc, int(now)))
+                elif now - prev_at <= EVENT_GAP:
                     self._mark_history_start(prev_at)
                     self.store.add_client_events(client_events(prev, doc, int(now)))
-                else:
-                    self.store.add_unit_events(unit_events(prev, doc, int(now)))
+                else:                               # unknown where clients were meanwhile: not on their old unit
+                    self._mark_history_start(prev_at)
+                    self.store.add_client_events(client_events(prev, [], int(prev_at)) + client_events([], doc, int(now)))
         self.store.put(kind, doc, now)
         if kind == 'networks':
             if not doc:
@@ -142,7 +145,9 @@ class Poller:
                 return
             known = self.store.state().get('network') or {}
             if known.get('url') and known['url'] != doc[0]['url']:
-                self.store.forget_history()                      # another account's network: start afresh
+                self.store.forget_history()                      # another account's network: start afresh,
+                self.store.forget()                              # without its units and clients to compare with
+                self.store.put(kind, doc, now)
                 self._history_since = None
             self.net = doc[0]                                    # one network per account for now
             self.store.set_state(network=self.net)
