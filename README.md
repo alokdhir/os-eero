@@ -94,7 +94,7 @@ eero's API isn't public or documented, and eero can change it without notice. Se
 
 ## Install (development)
 
-From a checkout, on a machine that can SSH to the router:
+The eero plugin is not in the official plugin list [yet](https://github.com/opnsense/plugins/issues/5855). To try it, install it from a checkout, on a machine that can SSH to the router:
 
 ```sh
 ROUTER=admin@192.168.1.1 tools/deploy.sh             # install or update
