@@ -97,11 +97,11 @@ eero's API isn't public or documented, and eero can change it without notice. Se
 The eero plugin installs from a package repository (it isn't in the official plugin list: [plugins there wrap FreeBSD ports](https://github.com/opnsense/plugins/issues/5855)). Add the repository once, on the router as root:
 
 ```sh
-fetch -o /usr/local/etc/pkg/repos/dhir-os-plugins.conf https://alokdhir.github.io/os-loupe/dhir-os-plugins.conf
+fetch -o /usr/local/etc/pkg/repos/dhir-os-plugins.conf https://alokdhir.github.io/os-plugins/dhir-os-plugins.conf
 pkg update
 ```
 
-Then install **os-eero** from **System → Firmware → Plugins** (or `pkg install os-eero`). Updates arrive with OPNsense's own. The repository is hosted by [os-loupe](https://github.com/alokdhir/os-loupe), which also has Loupe, per-device traffic.
+Then install **os-eero** from **System → Firmware → Plugins** (or `pkg install os-eero`). Updates arrive with OPNsense's own. The repository, [os-plugins](https://alokdhir.github.io/os-plugins/), also has Loupe, per-device traffic.
 
 For development, from a checkout on a machine that can SSH to the router:
 
@@ -110,7 +110,7 @@ ROUTER=admin@192.168.1.1 tools/deploy.sh             # install or update
 ROUTER=admin@192.168.1.1 tools/deploy.sh uninstall   # remove
 ```
 
-Packages are built and published by `tools/publish.sh` in os-loupe; a changed plugin needs a new `PLUGIN_VERSION` or `PLUGIN_REVISION`.
+Packages are built and published by `tools/publish.sh` in [os-plugins](https://github.com/alokdhir/os-plugins); a changed plugin needs a new `PLUGIN_VERSION` or `PLUGIN_REVISION`.
 
 ## Credits
 
