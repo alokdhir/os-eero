@@ -102,7 +102,11 @@ fetch -o /usr/local/etc/pkg/repos/dhir-os-plugins.conf https://alokdhir.github.i
 pkg update
 ```
 
-Then install **os-eero** from **System → Firmware → Plugins** (or `pkg install os-eero`). Updates arrive with OPNsense's own. The repository, [os-plugins](https://alokdhir.github.io/os-plugins/), also has Loupe, per-device traffic.
+Then install **os-eero** from **System → Firmware → Plugins** (or `pkg install os-eero`); OPNsense shows its standard *Third party software* notice first, as it does for any package not from OPNsense. Updates arrive with OPNsense's own, under **System → Firmware → Updates**. The repository is signed: `pkg` checks everything it installs from it against the public key fetched above. It also has [Loupe](https://github.com/alokdhir/os-loupe), per-device traffic.
+
+Once installed, open **Reporting → Eero → Settings**, tick *Enable*, and log in with your eero account (its email or phone, then the code eero sends).
+
+Removing the plugin (or `pkg delete os-eero`) keeps the history and the eero session in `/var/db/eero/` until you delete them. Requires OPNsense 26.x, on any architecture (the package holds no compiled code).
 
 For development, from a checkout on a machine that can SSH to the router:
 
