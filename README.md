@@ -92,16 +92,25 @@ Wi-Fi and Thread passwords that the API returns are dropped before anything is s
 eero's API isn't public or documented, and eero can change it without notice. See
 [docs/API.md](docs/API.md) for what the plugin uses.
 
-## Install (development)
+## Install
 
-The eero plugin is not in the official plugin list [yet](https://github.com/opnsense/plugins/issues/5855). To try it, install it from a checkout, on a machine that can SSH to the router:
+The eero plugin installs from a package repository (it isn't in the official plugin list: [plugins there wrap FreeBSD ports](https://github.com/opnsense/plugins/issues/5855)). Add the repository once, on the router as root:
+
+```sh
+fetch -o /usr/local/etc/pkg/repos/alokdhir.conf https://alokdhir.github.io/os-loupe/alokdhir.conf
+pkg update
+```
+
+Then install **os-eero** from **System → Firmware → Plugins** (or `pkg install os-eero`). Updates arrive with OPNsense's own. The repository is hosted by [os-loupe](https://github.com/alokdhir/os-loupe), which also has Loupe, per-device traffic.
+
+For development, from a checkout on a machine that can SSH to the router:
 
 ```sh
 ROUTER=admin@192.168.1.1 tools/deploy.sh             # install or update
 ROUTER=admin@192.168.1.1 tools/deploy.sh uninstall   # remove
 ```
 
-Or on the router itself, as root: `sh tools/install.sh` (and `tools/uninstall.sh`).
+Packages are built and published by `tools/publish.sh` in os-loupe; a changed plugin needs a new `PLUGIN_VERSION` or `PLUGIN_REVISION`.
 
 ## Credits
 
