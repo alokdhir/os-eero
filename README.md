@@ -97,7 +97,7 @@ eero's API isn't public or documented, and eero can change it without notice. Se
 The eero plugin installs from a package repository (it isn't in the official plugin list: [plugins there wrap FreeBSD ports](https://github.com/opnsense/plugins/issues/5855)). Add the repository once, on the router as root:
 
 ```sh
-fetch -o /usr/local/etc/pkg/repos/alokdhir.conf https://alokdhir.github.io/os-loupe/alokdhir.conf
+fetch -o /usr/local/etc/pkg/repos/dhir-os-plugins.conf https://alokdhir.github.io/os-loupe/dhir-os-plugins.conf
 pkg update
 ```
 
