@@ -106,6 +106,8 @@ Then install **os-eero** from **System → Firmware → Plugins** (or `pkg insta
 
 Once installed, open **Reporting → Eero → Settings**, tick *Enable*, and log in with your eero account (its email or phone, then the code eero sends).
 
+If eero answers that it has no account with your email address or phone number although the eero app signs you in (an account that signs in with Amazon seems to be one such case), the plugin can't use that account: it signs in with eero's email or phone code only. What has worked: create a new eero account with a plain email address, add it to your network, and transfer the network's ownership to it in the eero app; then log in to the plugin with the new account.
+
 Removing the plugin (or `pkg delete os-eero`) keeps the history and the eero session in `/var/db/eero/` until you delete them. Requires OPNsense 26.x, on any architecture (the package holds no compiled code).
 
 For development, from a checkout on a machine that can SSH to the router:
