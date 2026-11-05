@@ -16,4 +16,6 @@ procname="daemon"
 command="/usr/sbin/daemon"
 command_args="-f -r -R 5 -P ${pidfile} -T eero /usr/local/opnsense/scripts/eero/eerod.py"
 
+start_precmd="/usr/local/opnsense/scripts/eero/setup_user.sh"
+
 run_rc_command "$1"

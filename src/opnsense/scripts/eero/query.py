@@ -46,10 +46,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lib import client as api                  # noqa: E402
 from lib import store as cache                 # noqa: E402
 from lib import config                         # noqa: E402
+from lib import privs                          # noqa: E402
 from lib.history import UNIT_ID, client_name, is_up, readable, unit_id  # noqa: E402
-from lib.session import SessionStore           # noqa: E402
+from lib.session import DIR, SessionStore      # noqa: E402
 
 PIDFILE = '/var/run/eero.pid'
+ALIVE = None                                    # whether eerod runs, when asked before dropping root
 
 
 def running(pidfile=PIDFILE):
@@ -63,7 +65,7 @@ def running(pidfile=PIDFILE):
 
 def status(db_path=cache.PATH, sessions=None, pidfile=PIDFILE):
     sessions = sessions or SessionStore()
-    out = {'running': running(pidfile), 'session': sessions.info()}
+    out = {'running': running(pidfile) if ALIVE is None else ALIVE, 'session': sessions.info()}
     try:
         with cache.Store(db_path, readonly=True) as s:
             state = s.state()
@@ -579,5 +581,13 @@ def main(argv):
     print(json.dumps(result))
 
 
+def start_as_user():
+    """configd starts this as root. Only root can read eerod's pid file (and signal it), so ask first."""
+    global ALIVE
+    ALIVE = running()
+    privs.drop(DIR)
+
+
 if __name__ == '__main__':
+    start_as_user()
     main(sys.argv)

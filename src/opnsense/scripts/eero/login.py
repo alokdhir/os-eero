@@ -42,7 +42,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from lib import client as api                  # noqa: E402
-from lib.session import SessionStore           # noqa: E402
+from lib import privs                          # noqa: E402
+from lib.session import DIR, SessionStore      # noqa: E402
 from lib.store import Store                    # noqa: E402
 
 MESSAGES = {
@@ -149,4 +150,5 @@ def main(argv):
 
 if __name__ == '__main__':
     sys.stderr = open(os.devnull, 'w')              # warnings too would reach configd's log
+    privs.drop(DIR)
     main(sys.argv)

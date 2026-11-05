@@ -52,6 +52,7 @@ sed 's#/[^/]*$##' "$MANIFEST" | sort -ru | while read -r d; do
 done
 rm -rf $PREFIX/opnsense/scripts/eero
 rm -f "$MANIFEST" /etc/rc.conf.d/eero
+pw userdel eero >/dev/null 2>&1 || :
 
 rm -f /var/lib/php/tmp/opnsense_menu_cache.xml /var/lib/php/tmp/opnsense_acl_cache.json
 rm -f /var/lib/php/cache/*opnsense_eero*

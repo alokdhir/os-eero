@@ -22,7 +22,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""The eero session, kept on disk where only root can read it (never in config.xml).
+"""The eero session, kept on disk where only the eero user can read it (never in config.xml).
 
 /var/db/eero/session    the session token, once a login is verified
 /var/db/eero/pending    the token between "send me a code" and "here is the code"; ignored after PENDING_TTL

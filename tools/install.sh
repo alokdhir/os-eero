@@ -83,6 +83,7 @@ install -o root -g wheel -m 644 "$NEW" "$MANIFEST"
 rm -f "$NEW"
 find $PREFIX/opnsense/scripts/eero -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
 
+$PREFIX/opnsense/scripts/eero/setup_user.sh
 refresh_gui
 for i in 1 2 3 4 5 6 7 8 9 10; do        # configd takes a moment to come back
     configctl template reload OPNsense/Eero >/dev/null 2>&1 && break

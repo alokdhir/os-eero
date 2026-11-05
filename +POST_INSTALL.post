@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# the user eero runs as, and its data (the GUI's queries use them even with the service off)
+/usr/local/opnsense/scripts/eero/setup_user.sh
+
 # an upgrade leaves the old eerod running: restart it with the new code (only if it is enabled)
 if service eero enabled; then
 	service eero restart

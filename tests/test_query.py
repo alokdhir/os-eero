@@ -52,6 +52,17 @@ class TestStatus(unittest.TestCase):
         st = self.status()
         self.assertEqual((st["status"], st["running"], st["session"]), ("stopped", False, {"signed_in": False}))
 
+    def test_running_asked_before_dropping_root(self):
+        """Only root can read the pid file: after the drop, the answer from before it counts."""
+        with open(self.pidfile, "w") as f:
+            f.write(str(os.getpid()))
+        self.addCleanup(setattr, query, "ALIVE", None)
+        query.ALIVE = False
+        self.assertFalse(self.status()["running"])
+        query.ALIVE = True
+        os.unlink(self.pidfile)
+        self.assertTrue(self.status()["running"])
+
     def test_running_and_ok(self):
         with Store(self.db) as s:
             s.set_state(status="ok", last_ok=100, network={"url": "/2.2/networks/1", "name": "Example"})

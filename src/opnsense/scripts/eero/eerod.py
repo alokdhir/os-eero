@@ -38,8 +38,9 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from lib import client as api                  # noqa: E402
+from lib import privs                          # noqa: E402
 from lib.poller import Poller                  # noqa: E402
-from lib.session import SessionStore           # noqa: E402
+from lib.session import DIR, SessionStore      # noqa: E402
 from lib.store import Store                    # noqa: E402
 
 
@@ -49,6 +50,9 @@ CONDITIONS = {'signed out': 'signed out', 'signed out by eero': 'signed out', 'r
 
 def main():
     syslog.openlog('eero', facility=syslog.LOG_DAEMON)
+    why = privs.drop(DIR)
+    if why:
+        syslog.syslog(syslog.LOG_WARNING, 'running as root: %s' % why)
     running = True
 
     def stop(signum, frame):

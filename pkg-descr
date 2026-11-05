@@ -18,6 +18,16 @@ makers.
 Plugin Changelog
 ================
 
+1.1
+
+Security release: nothing in the plugin runs as root any more, the same change as
+https://github.com/alokdhir/os-loupe/issues/1 brought to Loupe
+
+* The poller and the scripts behind the GUI run as a dedicated, unprivileged eero user
+* The session token and the database in /var/db/eero belong to that user and are closed to everyone else
+* The eero user has no supplementary groups, so it can't read OPNsense's configuration
+* Upgrades move existing data to the new user; removing the plugin removes the user and keeps the data
+
 1.0
 
 * Initial release

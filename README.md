@@ -85,12 +85,16 @@ moves and units going offline, coming back or becoming primary; *Keep history* i
 long (7 days unless changed).
 
 You log in once from the GUI: enter your eero account's email or phone, then the code eero
-sends. The session is stored on the router in `/var/db/eero/` (readable by root only), not in
+sends. The session is stored on the router in `/var/db/eero/` (readable by the plugin's `eero` user only), not in
 the OPNsense configuration, so it isn't in config backups. Your email or phone isn't stored.
 Wi-Fi and Thread passwords that the API returns are dropped before anything is saved.
 
 eero's API isn't public or documented, and eero can change it without notice. See
 [docs/API.md](docs/API.md) for what the plugin uses.
+
+## Security
+
+The plugin talks only to eero's API, over HTTPS with certificates checked, and listens on no network port. Its pages are behind OPNsense's login and privileges. Since 1.1 nothing in it runs as root: the service and the scripts behind the GUI run as a dedicated `eero` user, which owns the session and the database and can't read OPNsense's configuration.
 
 ## Install
 
