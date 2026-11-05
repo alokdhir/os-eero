@@ -94,7 +94,7 @@ eero's API isn't public or documented, and eero can change it without notice. Se
 
 ## Security
 
-The plugin talks only to eero's API, over HTTPS with certificates checked, and listens on no network port. Its pages are behind OPNsense's login and privileges. Since 1.1 nothing in it runs as root: the service and the scripts behind the GUI run as a dedicated `eero` user, which owns the session and the database and can't read OPNsense's configuration.
+The plugin talks only to eero's API, over HTTPS with certificates checked, and listens on no network port. Its pages are behind OPNsense's login and privileges. Since 1.1 the service and the scripts behind the GUI run as a dedicated `eero` user, not root. That user owns the session and the database and can't read OPNsense's configuration.
 
 ## Install
 
