@@ -351,19 +351,7 @@ POSSIBILITY OF SUCH DAMAGE.
             rows.forEach(r => $b.append($('<tr/>').append(r.map(c => $('<td/>').html(c)))));
             return $t.append($b);
         }
-        /* opened from a device's page in Loupe: the way back leads there, for this visit only */
-        let cameFrom = null;
-        try {
-            cameFrom = JSON.parse(sessionStorage.getItem('eero.back'));
-            sessionStorage.removeItem('eero.back');
-            if (!cameFrom || !/^\/ui\/loupe\//.test(cameFrom.href)) cameFrom = null;
-        } catch (e) { cameFrom = null; }
-        if (cameFrom) $('#unit_back').attr('href', cameFrom.href).text('← ' + plain(cameFrom.label));
         function showUnits() {
-            if (cameFrom) {
-                cameFrom = null;
-                $('#unit_back').attr('href', '#units').text('← {{ lang._('All units') }}');
-            }
             $('#units_list').show();
             $('#unit_detail').hide();
             grid('grid_units', '/api/eero/report/search_units');
@@ -701,7 +689,7 @@ POSSIBILITY OF SUCH DAMAGE.
 <div class="tab-content content-box">
     <div id="units" class="tab-pane fade in">
         <div id="unit_detail" style="display: none; padding: 10px">
-            <p><a id="unit_back" href="#units">← {{ lang._('All units') }}</a></p>
+            <p><a href="#units">← {{ lang._('All units') }}</a></p>
             <div id="unit_detail_body">{{ lang._('Loading…') }}</div>
         </div>
         <div id="units_list">
